@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/@prisma/pms-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model PmsUser {
+  id          Int      @id @default(autoincrement()) // Using Int to be different from Hub's String/CUID
+  email       String   @unique
+  fullName    String
+  keycloakId  String?  @unique
+  role        String   @default("staff")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  guestName String
+  roomNumber String
+  status    String
+  checkIn   DateTime
+  checkOut  DateTime
+}

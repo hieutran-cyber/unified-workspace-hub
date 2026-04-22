@@ -1,0 +1,179 @@
+{
+  "realm": "KiNEX",
+  "enabled": true,
+  "loginTheme": "kinex",
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+  "registrationAllowed": false,
+  "registrationEmailAsUsername": false,
+  "verifyEmail": false,
+  "requiredActions": [
+    {
+      "alias": "VERIFY_PROFILE",
+      "name": "Verify Profile",
+      "providerId": "VERIFY_PROFILE",
+      "enabled": false,
+      "defaultAction": false
+    }
+  ],
+  "attributes": {
+    "userProfileEnabled": "true"
+  },
+  "userProfile": {
+    "unmanagedAttributePolicy": "ENABLED",
+    "attributes": [
+      {
+        "name": "username",
+        "displayName": "${username}",
+        "validations": {
+          "length": { "min": 3, "max": 255 },
+          "username-prohibited-characters": {},
+          "up-username-not-idn-homograph": {}
+        },
+        "permissions": {
+          "view": ["admin", "user"],
+          "edit": ["admin", "user"]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "email",
+        "displayName": "${email}",
+        "validations": {
+          "email": {},
+          "length": { "max": 255 }
+        },
+        "required": { "roles": ["user"] },
+        "permissions": {
+          "view": ["admin", "user"],
+          "edit": ["admin", "user"]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "firstName",
+        "displayName": "${firstName}",
+        "validations": {
+          "length": { "max": 255 },
+          "person-name-prohibited-characters": {}
+        },
+        "permissions": {
+          "view": ["admin", "user"],
+          "edit": ["admin", "user"]
+        },
+        "multivalued": false
+      },
+      {
+        "name": "lastName",
+        "displayName": "${lastName}",
+        "validations": {
+          "length": { "max": 255 },
+          "person-name-prohibited-characters": {}
+        },
+        "permissions": {
+          "view": ["admin", "user"],
+          "edit": ["admin", "user"]
+        },
+        "multivalued": false
+      }
+    ],
+    "groups": [
+      {
+        "name": "user-metadata",
+        "displayHeader": "User metadata",
+        "displayDescription": "Attributes, which refer to user metadata"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "workspace-hub",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "kinex-hub-secret-2026",
+      "redirectUris": ["http://localhost:3000/*"],
+      "webOrigins": ["http://localhost:3000"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "hub_permissions",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "hub_permissions",
+            "claim.name": "hub_permissions",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-mapper-workspace-hub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "workspace-hub",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "pms-app",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "pms-app-secret-2026",
+      "redirectUris": ["http://localhost:3005/*"],
+      "webOrigins": ["http://localhost:3005"],
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "protocolMappers": [
+        {
+          "name": "pms_roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "app_pms_roles",
+            "claim.name": "pms_roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "pms_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "ext_id_pms",
+            "claim.name": "pms_id",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "audience-mapper-pms-app",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "pms-app",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ]
+}

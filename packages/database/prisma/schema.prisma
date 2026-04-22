@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String           @id @default(cuid())
+  email      String           @unique
+  name       String?
+  keycloakId String?          @unique
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  avatarUrl  String?
+  category   String?
+  status     String?
+  type       String?
+  mappings   UserAppMapping[]
+  roles      UserRole[]
+}
+
+model CentralRole {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  mappings    RoleAppMapping[]
+  permissions RolePermission[]
+  users       UserRole[]
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  name        String           @unique
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  permission   Permission  @relation(fields: [permissionId], references: [id])
+  role         CentralRole @relation(fields: [roleId], references: [id])
+
+  @@id([roleId, permissionId])
+}
+
+model Application {
+  id           String           @id @default(cuid())
+  name         String           @unique
+  baseUrl      String
+  clientId     String?
+  color        String?
+  description  String?
+  status       String?
+  mappings     RoleAppMapping[]
+  userMappings UserAppMapping[]
+}
+
+model RoleAppMapping {
+  id            String      @id @default(cuid())
+  centralRoleId String
+  appId         String
+  appRoleName   String?
+  appGroups     String[]
+  appCompanies  String[]
+  appOutlets    String[]
+  appProperties String[]
+  app           Application @relation(fields: [appId], references: [id])
+  role          CentralRole @relation(fields: [centralRoleId], references: [id])
+
+  @@unique([centralRoleId, appId])
+}
+
+model UserRole {
+  userId String
+  roleId String
+  role   CentralRole @relation(fields: [roleId], references: [id])
+  user   User        @relation(fields: [userId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model UserAppMapping {
+  id         String      @id @default(cuid())
+  userId     String
+  appId      String
+  externalId String
+  app        Application @relation(fields: [appId], references: [id])
+  user       User        @relation(fields: [userId], references: [id])
+
+  @@unique([userId, appId])
+}
+
+model Property {
+  id          String   @id @default(cuid())
+  name        String
+  code        String   @unique
+  address     String?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // ID Mapping cho các hệ thống khác
+  odooId      String?  @map("odoo_id")
+  pmsId       String?  @map("pms_id")
+  posId       String?  @map("pos_id")
+}
