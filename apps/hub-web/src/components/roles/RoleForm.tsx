@@ -34,6 +34,14 @@ export function RoleForm({ id, onClose }: RoleFormProps) {
     { value: "kinex_dl", label: "KiNEX Two" },
     { value: "kinex_hn", label: "KiNEX Three" },
   ];
+
+  const MOCK_DEPARTMENTS = [
+    { value: "hr", label: "Human Resources" },
+    { value: "it", label: "IT Department" },
+    { value: "accounting", label: "Accounting" },
+    { value: "sales", label: "Sales" },
+    { value: "marketing", label: "Marketing" },
+  ];
   const MOCK_COMPANIES_PMS = [
     { value: "kinex_sg", label: "KiNEX PMS 1" },
     { value: "kinex_dl", label: "KiNEX PMS 2" },
@@ -157,7 +165,7 @@ export function RoleForm({ id, onClose }: RoleFormProps) {
 
   // Detailed app configurations
   const [appConfigs, setAppConfigs] = useState<Record<string, any>>({
-    Odoo: { groups: [], company: "" },
+    Odoo: { groups: [], company: "", department: "" },
     PMS: { role: "", company: "", properties: [], outlets: [] },
     POS: { role: "", company: "", properties: [], outlets: [] },
   });
@@ -186,6 +194,7 @@ export function RoleForm({ id, onClose }: RoleFormProps) {
             company: m.appCompanies?.[0] || "",
             properties: m.appProperties || [],
             outlets: m.appOutlets || [],
+            department: m.appDepartments?.[0] || "",
           };
         }
       });
@@ -255,6 +264,7 @@ export function RoleForm({ id, onClose }: RoleFormProps) {
             appGroups: app === "Odoo" ? config.groups : [],
             appProperties: config.properties || [],
             appOutlets: config.outlets || [],
+            appDepartments: app === "Odoo" && config.department ? [config.department] : [],
             appCompanies: [config.company].filter(Boolean),
           };
         }),
@@ -372,6 +382,20 @@ export function RoleForm({ id, onClose }: RoleFormProps) {
                                 options={MOCK_COMPANIES}
                                 onChange={(val) => updateConfig("Odoo", "company", val)}
                                 placeholder="Chọn công ty..."
+                              />
+                            </FormField>
+                            <FormField label="Department" className="!mb-0">
+                              <Select
+                                className="h-10 text-xs"
+                                value={appConfigs.Odoo.department}
+                                options={MOCK_DEPARTMENTS}
+                                onChange={(val) =>
+                                  setAppConfigs((prev) => ({
+                                    ...prev,
+                                    Odoo: { ...prev.Odoo, department: val },
+                                  }))
+                                }
+                                placeholder="Chọn phòng ban..."
                               />
                             </FormField>
                           </div>

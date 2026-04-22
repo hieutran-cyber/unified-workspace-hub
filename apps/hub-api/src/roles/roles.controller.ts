@@ -49,6 +49,7 @@ export class RolesController {
         appProperties?: string[];
         appOutlets?: string[];
         appCompanies?: string[];
+        appDepartments?: string[];
       }[];
     },
   ) {
@@ -86,6 +87,7 @@ export class RolesController {
             appProperties: m.appProperties || [],
             appOutlets: m.appOutlets || [],
             appCompanies: m.appCompanies || [],
+            appDepartments: m.appDepartments || [],
           },
           create: {
             centralRoleId: id,
@@ -95,6 +97,7 @@ export class RolesController {
             appProperties: m.appProperties || [],
             appOutlets: m.appOutlets || [],
             appCompanies: m.appCompanies || [],
+            appDepartments: m.appDepartments || [],
           },
         });
       }
@@ -110,6 +113,15 @@ export class RolesController {
       name: string;
       description?: string;
       permissionIds?: string[];
+      mappings?: {
+        appId: string;
+        appRoleName?: string;
+        appGroups?: string[];
+        appProperties?: string[];
+        appOutlets?: string[];
+        appCompanies?: string[];
+        appDepartments?: string[];
+      }[];
     },
   ) {
     // Resolve permission IDs from names
@@ -129,6 +141,19 @@ export class RolesController {
         permissions: {
           create: finalPermissionIds.map((pId) => ({ permissionId: pId })),
         },
+        mappings: data.mappings
+          ? {
+              create: data.mappings.map((m) => ({
+                appId: m.appId,
+                appRoleName: m.appRoleName,
+                appGroups: m.appGroups || [],
+                appProperties: m.appProperties || [],
+                appOutlets: m.appOutlets || [],
+                appCompanies: m.appCompanies || [],
+                appDepartments: m.appDepartments || [],
+              })),
+            }
+          : undefined,
       },
     });
   }
@@ -144,6 +169,7 @@ export class RolesController {
       appProperties?: string[];
       appOutlets?: string[];
       appCompanies?: string[];
+      appDepartments?: string[];
     },
   ) {
     return this.prisma.roleAppMapping.upsert({
@@ -159,6 +185,7 @@ export class RolesController {
         appProperties: data.appProperties || [],
         appOutlets: data.appOutlets || [],
         appCompanies: data.appCompanies || [],
+        appDepartments: data.appDepartments || [],
       },
       create: {
         centralRoleId: data.centralRoleId,
@@ -168,6 +195,7 @@ export class RolesController {
         appProperties: data.appProperties || [],
         appOutlets: data.appOutlets || [],
         appCompanies: data.appCompanies || [],
+        appDepartments: data.appDepartments || [],
       },
     });
   }

@@ -70,6 +70,7 @@ model RoleAppMapping {
   appCompanies  String[]
   appOutlets    String[]
   appProperties String[]
+  appDepartments String[]
   app           Application @relation(fields: [appId], references: [id])
   role          CentralRole @relation(fields: [centralRoleId], references: [id])
 
