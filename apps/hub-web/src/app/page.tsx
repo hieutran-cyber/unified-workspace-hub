@@ -55,22 +55,22 @@ function LandingPageContent() {
                 <div className="flex items-center gap-2 px-4 py-3 bg-destructive/10 rounded-2xl border border-destructive/20 max-w-sm">
                   <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
                   <p className="text-xs font-bold text-destructive text-left leading-relaxed">
-                    Lỗi kết nối hệ thống xác thực. Vui lòng kiểm tra lại cấu hình Keycloak hoặc thử
-                    lại sau.
+                    Authentication system connection error. Please check your Keycloak configuration or try
+                    again later.
                   </p>
                 </div>
                 <button
                   onClick={() => signIn("keycloak")}
                   className="mx-auto flex items-center gap-2 px-6 py-3 bg-foreground text-background rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-xl"
                 >
-                  <RefreshCcw className="h-4 w-4" /> Thử lại ngay
+                  <RefreshCcw className="h-4 w-4" /> Try Again
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Đang kết nối hệ thống xác thực...
+                  Connecting to authentication system...
                 </p>
               </div>
             )}

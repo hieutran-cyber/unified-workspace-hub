@@ -5,6 +5,7 @@ import { SidePanel } from "@/components/shared/SidePanel";
 import { EmployeeForm } from "@/components/employees/EmployeeForm";
 import { RoleForm } from "@/components/roles/RoleForm";
 import { PropertyForm } from "@/components/properties/PropertyForm";
+import { OrganizationForm } from "@/components/organizations/OrganizationForm";
 import { useCallback, useMemo } from "react";
 
 export function ManagementController() {
@@ -29,23 +30,30 @@ export function ManagementController() {
   const config = useMemo(() => {
     if (panel === "employee") {
       return {
-        title: action === "create" ? "Thêm nhân viên mới" : "Chỉnh sửa nhân viên",
-        subtitle: action === "create" ? "Tạo định danh mới trên hệ thống KiNEX" : `Mã nhân viên: ${id}`,
+        title: action === "create" ? "Add New Employee" : "Edit Employee",
+        subtitle: action === "create" ? "Create a new identity on KiNEX Hub" : `Employee ID: ${id}`,
         component: <EmployeeForm id={id || undefined} onClose={handleClose} />
       };
     }
     if (panel === "role") {
       return {
-        title: action === "create" ? "Tạo vai trò mới" : "Chỉnh sửa vai trò",
-        subtitle: action === "create" ? "Định nghĩa quyền hạn truy cập cho toàn hệ thống" : `Vai trò: ${id}`,
+        title: action === "create" ? "Create New Role" : "Edit Role",
+        subtitle: action === "create" ? "Define access permissions for the system" : `Role: ${id}`,
         component: <RoleForm id={id || undefined} onClose={handleClose} />
       };
     }
     if (panel === "property") {
       return {
-        title: action === "create" ? "Thêm Property mới" : "Chỉnh sửa Property",
-        subtitle: action === "create" ? "Đăng ký cơ sở kinh doanh vào hệ thống Hub" : `Property ID: ${id}`,
+        title: action === "create" ? "Add New Property" : "Edit Property",
+        subtitle: action === "create" ? "Register a business location to Hub" : `Property ID: ${id}`,
         component: <PropertyForm id={id || undefined} onClose={handleClose} />
+      };
+    }
+    if (panel === "organization") {
+      return {
+        title: action === "create" ? "Create New Organization" : "Edit Organization",
+        subtitle: action === "create" ? "Set up new corporate structure" : `Org ID: ${id}`,
+        component: <OrganizationForm id={id || undefined} onClose={handleClose} />
       };
     }
     return null;

@@ -3,8 +3,9 @@
 import { ShieldAlert, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function AccessDeniedPage() {
+function AccessDeniedContent() {
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
 
@@ -16,20 +17,20 @@ export default function AccessDeniedPage() {
         </div>
 
         <div className="space-y-2">
-          <h1 className="text-2xl font-black tracking-tight">TRUY CẬP BỊ TỪ CHỐI</h1>
+          <h1 className="text-2xl font-black tracking-tight">ACCESS DENIED</h1>
           <p className="text-muted-foreground text-sm leading-relaxed">
             {error === "Configuration" 
-              ? "Hệ thống chưa được cấu hình đúng. Vui lòng liên hệ quản trị viên."
-              : "Tài khoản của bạn chưa được cấp quyền truy cập vào Workspace này hoặc đã bị tạm khóa."}
+              ? "The system is not configured correctly. Please contact the administrator."
+              : "Your account has not been granted access to this Workspace or has been temporarily locked."}
           </p>
         </div>
 
         <div className="p-4 bg-muted/50 rounded-2xl border border-border/50 text-[11px] text-left space-y-2">
-          <p className="font-bold uppercase tracking-widest opacity-50">Hướng dẫn:</p>
+          <p className="font-bold uppercase tracking-widest opacity-50">Instructions:</p>
           <ul className="list-disc list-inside space-y-1 opacity-80">
-            <li>Đảm bảo bạn đang đăng nhập bằng email công ty.</li>
-            <li>Liên hệ phòng HCNS để yêu cầu cấp quyền.</li>
-            <li>Thử đăng xuất và đăng nhập lại.</li>
+            <li>Ensure you are logged in with your company email.</li>
+            <li>Contact HR to request access.</li>
+            <li>Try logging out and logging back in.</li>
           </ul>
         </div>
 
@@ -38,7 +39,7 @@ export default function AccessDeniedPage() {
           className="flex items-center justify-center gap-2 w-full h-12 bg-primary text-primary-foreground font-bold rounded-xl hover:opacity-90 transition-all active:scale-95 shadow-lg shadow-primary/20"
         >
           <ArrowLeft className="h-4 w-4" />
-          Quay lại trang chủ
+          Back to Home
         </Link>
       </div>
       
@@ -46,5 +47,13 @@ export default function AccessDeniedPage() {
         KiNEX Unified Workspace &copy; 2026
       </p>
     </div>
+  );
+}
+
+export default function AccessDeniedPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <AccessDeniedContent />
+    </Suspense>
   );
 }

@@ -12,184 +12,225 @@ Hiện tại, hệ thống đang vận hành với nhiều ứng dụng riêng b
 - **Phân quyền không nhất quán**: Cùng một nhân viên có thể có vai trò khác nhau giữa các app mà không có sự kiểm soát tập trung.
 - **Cấu trúc tổ chức xung đột**: Odoo và PMS/POS có cách quản lý Company và Property khác nhau.
 - **Trải nghiệm kém**: Nhân viên phải đăng nhập nhiều lần khi chuyển đổi giữa các ứng dụng.
+- **Thiếu tính mở rộng cho bên thứ ba**: Kiến trúc hiện tại chưa hỗ trợ việc đóng gói hệ thống để cung cấp cho các khách hàng doanh nghiệp khác (B2B) như một nền tảng dịch vụ (SaaS).
+
+**Mục tiêu mở rộng**: Hệ thống không chỉ phục vụ nội bộ KiNEX mà còn được thiết kế để có thể thương mại hóa, cho phép các tổ chức bên ngoài đăng ký và sử dụng toàn bộ hệ sinh thái quản trị này (White-label/SaaS ready).
+
+## 2. Tầm nhìn: Hệ sinh thái Quản trị Đa Tổ chức (Organization-First)
+
+Chúng ta sẽ xây dựng một **Nền tảng Workspace trung tâm** đóng vai trò điều phối cho toàn bộ hệ sinh thái. Điểm khác biệt cốt lõi là việc đặt **Organization (Tổ chức)** làm trọng tâm của mọi thực thể quản lý.
+
+### 2.1 Mô hình Phân tầng Dữ liệu (Hierarchy)
+
+Hệ thống được thiết kế theo cấu trúc Top-Down chặt chẽ:
+
+1.  **Organization (Cấp 0 - Root)**: Đại diện cho một tập đoàn hoặc pháp nhân lớn nhất.
+    - Mọi thực thể (User, Property, Role, App) đều phải thuộc về một Organization.
+    - Cho phép cách ly dữ liệu hoàn toàn giữa các khách hàng/tập đoàn khác nhau.
+2.  **Property / Brand (Cấp 1)**: Các đơn vị kinh doanh trực thuộc (Khách sạn, Resort, Chuỗi nhà hàng).
+    - Một Organization sở hữu nhiều Properties.
+3.  **Application (Cấp 2)**: Các công cụ vận hành (Odoo, PMS, POSv, etc...).
+    - Các App được kích hoạt theo nhu cầu của từng Organization.
+    - **Cơ chế Độc lập (Instance Binding)**: Khi một Tổ chức đăng ký, hệ thống có khả năng liên kết với các Instance ứng dụng riêng biệt. Ví dụ: Org A sử dụng Odoo Instance #1, Org B sử dụng Odoo Instance #2. Workspace Hub đóng vai trò là lớp "Proxy" điều phối lệnh tới đúng Instance tương ứng.
+4.  **Personnel & Roles (Cấp 3)**: Người dùng và quyền hạn.
+    - Một User có **một tài khoản định danh duy nhất** (email) nhưng có thể được mời vào **nhiều Organization** khác nhau, mỗi nơi với vai trò riêng.
+    - Trong thực tế đa số nhân viên chỉ thuộc **01 Organization chính**. Tuy nhiên, kiến trúc vẫn hỗ trợ trường hợp ngoại lệ (consultant, quản lý vùng liên tập đoàn).
+
+### 2.2 Mô hình Quan hệ User ↔ Organization (Membership)
+
+Để hỗ trợ linh hoạt việc một User tham gia nhiều Org, hệ thống sử dụng bảng trung gian **OrgMembership**:
+
+| Trường      | Mô tả                                            |
+| :---------- | :----------------------------------------------- |
+| `userId`    | Khóa ngoại tới bảng User                         |
+| `orgId`     | Khóa ngoại tới bảng Organization                 |
+| `orgRole`   | Vai trò trong Org: `OWNER`, `ADMIN`, `MEMBER`    |
+| `status`    | Trạng thái: `ACTIVE`, `INVITED`, `SUSPENDED`     |
+| `isPrimary` | Đánh dấu Org chính của User (mặc định khi login) |
+
+- **Quy tắc**: Khi User đăng nhập, hệ thống kiểm tra tất cả Org mà User thuộc về. Nếu chỉ có 1 Org → tự động vào Org đó. Nếu có nhiều → hiển thị màn hình chọn Organization (ưu tiên Org có `isPrimary = true`).
+- **Trường hợp phổ biến**: 1 User — 1 Org — nhiều Properties với các Role khác nhau tại mỗi Property.
+
+### 2.3 Nguyên tắc cốt lõi
+
+- **Đăng nhập một lần (SSO) & Chọn tổ chức**: Sau khi đăng nhập, người dùng được chọn Organization để làm việc. Hệ thống tự động lọc các App và Property thuộc về Organization đó.
+- **Quản trị tập trung (Centralized Governance)**: Việc thiết lập cấu trúc tổ chức, thêm bớt chi nhánh (Property) và phân quyền ứng dụng được thực hiện duy nhất tại Workspace Hub.
+- **Linh hoạt hóa Instance (On-demand Provisioning)**: Hệ thống hỗ trợ mô hình "Multi-instance". Nếu khách hàng (Organization) mới yêu cầu một môi trường Odoo hay PMS riêng biệt, Workspace Hub có thể kết nối tới Instance đó và thực hiện quản trị nhân sự tập trung mà không làm ảnh hưởng tới các tổ chức khác.
+- **Đồng bộ định danh (Identity Sync)**: Keycloak đóng vai trò là "Sổ định danh" chung. Workspace Hub điều phối việc đẩy dữ liệu (Provisioning) xuống các ứng dụng con theo đúng ngữ cảnh của Organization.
 
 ---
 
-## 2. Tầm nhìn: Một Workspace Duy nhất
+## 3. Phân tích và So sánh Giải pháp (Keycloak vs. Clerk)
 
-Chúng ta sẽ xây dựng một **Nền tảng Workspace trung tâm** đóng vai trò là cổng vào duy nhất cho toàn bộ hệ sinh thái. Từ đây, người quản trị có thể quản lý nhân sự, phân quyền và giám sát mọi hoạt động trên một giao diện duy nhất.
+Trong quá trình thiết kế, chúng tôi đã cân nhắc hai giải pháp hàng đầu là **Keycloak** (Open Source, Self-hosted) và **Clerk** (Managed SaaS). Dưới đây là bảng đánh giá chi tiết đặc biệt tập trung vào bài toán B2B SaaS (Multi-tenant):
 
-### 2.1 Nguyên tắc cốt lõi
+### 3.1 Bảng so sánh Chi tiết
 
-- **Đăng nhập một lần, truy cập mọi nơi**: Nhân viên chỉ cần đăng nhập một lần duy nhất tại Workspace. Khi chuyển sang Odoo, PMS hay POS, họ được vào thẳng mà không thấy bất kỳ màn hình đăng nhập nào.
-- **Quản lý tập trung, vận hành độc lập**: Việc tạo tài khoản, gán quyền, quản lý sơ đồ tổ chức đều thực hiện tại Workspace. Tuy nhiên, các ứng dụng con vẫn hoạt động bình thường nếu Workspace tạm thời bảo trì.
-- **Phân quyền rõ ràng theo Vai trò**: Mỗi vai trò (Kế toán, Lễ tân...) quy định rõ nhân viên được truy cập ứng dụng nào, với quyền hạn gì.
+| Tiêu chí Đánh giá                    | Keycloak (Open Source / Self-hosted)                                   | Clerk (Managed B2B SaaS)                                                  | Lợi thế                            |
+| :----------------------------------- | :--------------------------------------------------------------------- | :------------------------------------------------------------------------ | :--------------------------------- |
+| **Mô hình vận hành**                 | Tự quản lý (Self-hosted) trên hạ tầng Docker/K8s.                      | Thuê dịch vụ trọn gói (Managed), API-first.                               | **Clerk** (Không tốn DevOps)       |
+| **Chủ quyền Dữ liệu**                | **100%**: Thông tin User, Session nằm hoàn toàn trong DB của công ty.  | **Giới hạn**: Dữ liệu định danh lưu tại Cloud của Clerk (Mỹ/Châu Âu).     | **Keycloak** (Bảo mật tuyệt đối)   |
+| **Multi-tenancy (Đa tổ chức)**       | Hỗ trợ qua Realm hoặc Group. Phải tự code logic cô lập và quản lý Org. | Có sẵn **Organization API**: Tự động chia tenant, quản lý member, role.   | **Clerk** (Tiết kiệm 60% dev time) |
+| **Tích hợp Legacy (Odoo)**           | **Native**: Hỗ trợ chuẩn SAML 2.0, LDAP (rất cần cho Odoo/ERP cũ).     | **Hạn chế**: Chỉ hỗ trợ OIDC/JWT. Cần viết Adapter riêng để nối với Odoo. | **Keycloak** (Chuẩn doanh nghiệp)  |
+| **Tùy biến Giao diện (White-label)** | Vô hạn: Có thể tùy chỉnh trang Login riêng biệt cho từng Organization. | Giới hạn: Chỉ đổi được logo, màu sắc cơ bản. Giao diện Login chung.       | **Keycloak** (Branding tốt hơn)    |
+| **Trải nghiệm Developer (DX)**       | Khó: Tài liệu phức tạp, cần hiểu sâu về Java và chuẩn OAuth2/SAML.     | Tuyệt vời: SDK cho Next.js/Node.js cực mạnh, copy-paste là chạy.          | **Clerk** (Go-to-market cực nhanh) |
+| **Tính năng mở rộng**                | MFA cơ bản, Social Login cần tự setup.                                 | MFA nâng cao, Passkeys, Bot protection, Social login 1-click.             | **Clerk** (Hiện đại hóa)           |
 
-### 2.2 Trải nghiệm người dùng mục tiêu
+### 3.2 Phân tích Kinh tế và Quy mô (Scale Simulation)
 
-1. Nhân viên truy cập `workspace.kinex.vn` → Đăng nhập (lần duy nhất).
-2. Nhân viên thấy các icon ứng dụng mà mình có quyền truy cập.
-3. Click vào icon Odoo → Vào thẳng giao diện Odoo, không cần đăng nhập lại.
-4. Chuyển sang PMS → Vào thẳng, không cần đăng nhập lại.
+| Quy mô Hệ thống                      | Ước tính Chi phí Clerk                 | Ước tính Chi phí Keycloak (Infra) | Phân tích                                |
+| :----------------------------------- | :------------------------------------- | :-------------------------------- | :--------------------------------------- |
+| **MVP (1-5 Orgs, < 500 User)**       | **~$0 - $50/tháng**                    | **$50 - $100/tháng** (VPS + DB)   | **Clerk thắng** do miễn phí bậc thấp.    |
+| **Scale (50 Orgs, 5.000 User)**      | **~$500 - $800/tháng** (Phí MAU + Org) | **$100 - $150/tháng**             | **Keycloak rẻ hơn**.                     |
+| **Enterprise (500+ Orgs, 50k User)** | **$3.000 - $5.000+/tháng**             | **$300 - $500/tháng** (Cluster)   | **Keycloak thắng tuyệt đối** về chi phí. |
+
+**Nhận định Chiến lược:**
+
+- **Chọn Keycloak khi:** Yêu cầu bảo mật dữ liệu khắt khe, bắt buộc dùng SAML cho Odoo, và muốn kiểm soát chi phí khi scale lên hàng trăm Organization.
+- **Chọn Clerk khi:** Cần tốc độ ra mắt thị trường (Time-to-market) cực nhanh, ưu tiên trải nghiệm Developer, không muốn nuôi team DevOps, và Odoo có thể cấu hình dùng OIDC thay vì SAML.
 
 ---
 
-## 3. Hướng giải quyết
+## 4. Hướng giải quyết Kỹ thuật (Kiến trúc linh hoạt IdP)
 
-### 3.1 Hợp nhất Danh tính và Cơ chế SSO (Keycloak)
+Hệ thống được thiết kế theo mô hình **IdP-Agnostic** (không phụ thuộc cứng vào IdP). Dù chọn Keycloak hay Clerk, kiến trúc lõi của Workspace Hub vẫn giữ nguyên.
 
-**Vấn đề**: Mỗi app có bảng User và hệ thống xác thực riêng, dẫn đến việc người dùng phải nhớ nhiều mật khẩu và đăng nhập nhiều lần.
+### 4.1 Hợp nhất Danh tính và Cơ chế SSO
 
-**Giải pháp**: Sử dụng **Keycloak** làm Identity Provider (IdP) trung tâm - đóng vai trò là "Sổ hộ khẩu" duy nhất cho toàn bộ hệ sinh thái.
+**Vấn đề**: Người dùng làm việc cho nhiều tổ chức/chi nhánh khác nhau phải quản lý nhiều tài khoản.
 
-#### Cách Keycloak giải quyết vấn đề SSO:
+**Giải pháp với Keycloak (Tùy chọn A):**
 
-1.  **Quản lý Session Tập trung (Centralized Session)**:
-    - Khi đăng nhập thành công tại Workspace, Keycloak duy trì một phiên làm việc duy nhất cho người dùng và lưu trữ **SSO Cookie** trên trình duyệt.
-    - Mọi ứng dụng con (Odoo, PMS, POS) đều "tin tưởng" vào phiên làm việc này của Keycloak.
-2.  **Sử dụng Giao thức OIDC (OpenID Connect)**:
-    - Keycloak cung cấp các **ID Token** và **Access Token (JWT)** được ký số.
-    - Các ứng dụng con không còn tự quản lý mật khẩu mà chỉ xác thực tính hợp lệ của Token từ Keycloak gửi tới.
-3.  **Cơ chế Silent Authentication (Xác thực ngầm)**:
-    - Sử dụng tham số `prompt=none` trong luồng OIDC. Khi người dùng chuyển app, trình duyệt tự động gửi SSO Cookie tới Keycloak.
-    - Keycloak nhận diện phiên đăng nhập hiện tại và trả về Token ngay lập tức, giúp người dùng vào thẳng ứng dụng mà không thấy màn hình login (Zero-Interaction SSO).
-4.  **Đăng xuất tập trung (Single Sign-Out)**:
-    - Khi người dùng đăng xuất tại Workspace, Keycloak sẽ thông báo và hủy phiên làm việc trên tất cả các app liên kết đồng thời, đảm bảo an toàn tuyệt đối.
+1.  **Luồng Đăng nhập**: User xác thực tại Keycloak → Hub nhận Token → Kiểm tra bảng `OrgMembership` tự build → Mở giao diện chọn Org → Ghi `org_id` vào Custom JWT.
+2.  **SSO App con**: Keycloak dùng **SAML** hoặc OIDC đẩy thẳng Token xuống Odoo/PMS.
+3.  **Cross-Tenant Guard**: Keycloak sử dụng `Client Scope` để chặn việc lấy Token trái phép.
 
-#### 3.1.1 So sánh và Lựa chọn Giải pháp (Keycloak vs. Clerk)
+**Giải pháp với Clerk (Tùy chọn B - Khuyến nghị của Sếp):**
 
-Trong quá trình thiết kế, chúng tôi đã cân nhắc giữa hai giải pháp hàng đầu là **Keycloak** (Open Source, Self-hosted) và **Clerk** (SaaS). Dưới đây là bảng so sánh chi tiết:
+1.  **Luồng Đăng nhập**: Dùng component `<SignIn />` của Clerk.
+2.  **Chọn Tổ chức**: Dùng component `<OrganizationSwitcher />` có sẵn. Clerk tự động cấp JWT Token chứa sẵn `org_id` hiện tại (`org_id` claim).
+3.  **SSO App con (Thách thức)**: Vì Clerk không hỗ trợ SAML Outbound tốt, Hub API phải đóng vai trò là "Identity Broker": Hub nhận Clerk Token → Tự generate một JWT nội bộ → Gửi JWT này cho Odoo qua API ngầm để lấy session Odoo → Trả session Odoo về cho trình duyệt.
 
-| Tiêu chí | Keycloak | Clerk |
-| :--- | :--- | :--- |
-| **Mô hình** | **Self-hosted** (Tự triển khai trên hạ tầng riêng) | **SaaS** (Dịch vụ đám mây quản lý bởi bên thứ 3) |
-| **Quyền sở hữu dữ liệu** | **Toàn quyền**: Dữ liệu người dùng nằm trong database của doanh nghiệp. | **Phụ thuộc**: Dữ liệu lưu trữ trên server của Clerk. |
-| **Chi phí** | **Tối ưu**: Miễn phí bản quyền, chỉ tốn chi phí vận hành server. | **Tăng dần theo quy mô**: Trả phí theo số lượng người dùng (MAU). |
-| **Tùy biến** | **Vô hạn**: Có thể tùy biến theme, luồng xác thực (Authentication Flow) và plugin. | **Hạn chế**: Chỉ tùy biến được giao diện trong phạm vi cho phép. |
-| **Khả năng tích hợp** | **Enterprise Ready**: Hỗ trợ LDAP, Active Directory, SAML 2.0, OIDC. | **Modern Web**: Tối ưu cho Next.js/React, hạn chế với hệ thống cũ. |
+_(Phần còn lại của tài liệu giả định áp dụng nguyên tắc chung cho cả 2 giải pháp)_
 
-**Lý do quyết định chọn Keycloak cho KiNEX:**
+### 4.2 Chiến lược Cách ly Dữ liệu (Data Isolation)
 
-1.  **Chủ quyền dữ liệu & Bảo mật**: Với một hệ thống lõi quản trị toàn bộ nhân sự tập đoàn, việc tự nắm giữ cơ sở dữ liệu định danh là yêu cầu tiên quyết.
-2.  **Khả năng mở rộng không giới hạn**: Keycloak cho phép chúng ta can thiệp sâu vào code để xử lý các logic phức tạp như "Silent SSO" giữa các domain khác nhau hoặc tích hợp với các App Legacy (Odoo, PMS) dễ dàng hơn.
-3.  **Hiệu quả kinh tế**: Khi hệ sinh thái mở rộng lên hàng nghìn nhân viên, mô hình trả phí theo user của Clerk sẽ trở nên rất đắt đỏ. Keycloak giúp kiểm soát chi phí cố định.
-4.  **Hệ sinh thái Enterprise**: Keycloak là tiêu chuẩn vàng trong các hệ thống Identity Management mã nguồn mở, được tin dùng bởi các doanh nghiệp lớn trên thế giới.
+Đây là quyết định kiến trúc quan trọng nhất cho multi-tenant SaaS:
 
-### 3.2 Hợp nhất Phân quyền (Role-App Mapping)
+**Phương án: Shared Database + Row-Level Security (RLS)**
 
-**Vấn đề**: Quyền hạn ở mỗi app được quản lý riêng lẻ, Admin phải vào từng app để cấp quyền. Cấu trúc quyền ở mỗi hệ thống lại khác nhau (Odoo dùng Group, PMS/POS dùng Role nội bộ).
+| Thành phần               | Chiến lược                                    | Chi tiết                                                    |
+| :----------------------- | :-------------------------------------------- | :---------------------------------------------------------- |
+| **Hub Database**         | Shared DB, mọi bảng có cột `orgId` (NOT NULL) | Prisma Middleware tự inject `WHERE orgId = ?` vào mọi query |
+| **IdP (Keycloak/Clerk)** | 1 Environment chung                           | Keycloak dùng Attribute / Clerk dùng built-in Organizations |
+| **App Instances**        | DB riêng per Org (Instance Binding)           | Mỗi Odoo/PMS instance có DB riêng, đảm bảo cô lập hoàn toàn |
 
-**Giải pháp**: Xây dựng hệ thống **Mapping Vai trò đa tầng** tại Workspace. Mỗi **Vai trò Workspace** (Workspace Role) sẽ là một định nghĩa chuẩn, chứa thông tin mapping tương ứng cho từng ứng dụng con. Khi một nhân viên được gán Vai trò Workspace, họ sẽ tự động nhận được các quyền tương ứng tại các App đã cấu hình.
+**Lý do chọn Shared DB cho Hub**: Đơn giản hóa việc quản trị, backup và migration. Prisma Middleware đảm bảo không bao giờ có cross-org data leak.
+**Lý do chọn DB riêng cho App Instances**: Odoo, PMS đều có schema phức tạp và không được thiết kế cho multi-tenant. Tách instance hoàn toàn là cách an toàn nhất.
 
-#### Cấu trúc Mapping cho từng Ứng dụng:
+### 4.3 Cấu trúc Quản trị Đa tầng chi tiết
 
-1.  **Đối với Odoo**:
-    - **Mapping Groups**: Ánh xạ với các nhóm quyền chức năng trong Odoo (ví dụ: `account.group_account_invoice`).
-    - **Mapping Companies**: Danh sách ID các công ty mà vai trò này được phép truy cập.
-    - **Mapping Properties**: Các thuộc tính/tài sản cụ thể gắn liền với vai trò.
-2.  **Đối với PMS & POS**:
-    - **Mapping Roles**: Ánh xạ với các vai trò định nghĩa sẵn bên trong hệ thống PMS/POS (ví dụ: `Receptionist`, `Manager`).
-    - **Mapping Companies**: Danh sách ID các đơn vị (Hotel/Branch) được phép truy cập.
+1.  **Organization (Tenant)**:
+    - Metadata: Tên tập đoàn, slug, mã số thuế, domain riêng.
+    - Liên kết: Cấu hình App Instance (Odoo URL, PMS URL).
+2.  **Property (Location)**:
+    - Metadata: Địa chỉ, mã chi nhánh, múi giờ. Thuộc về 1 Org duy nhất.
+3.  **Role & App Mapping**:
+    - Quyền hạn được cấp theo công thức: `User + Organization + Property + Role`.
 
-**Nguyên tắc vận hành**: Admin thực hiện Mapping các ID này thủ công một lần tại màn hình quản lý Vai trò của Workspace. Hệ thống chỉ lưu trữ các "Mỏ neo" ID này mà không cần đồng bộ toàn bộ danh sách metadata từ app con.
+### 4.4 Bảo mật Cross-Tenant (Chống truy cập chéo)
 
-## 4. Luồng Nghiệp vụ Chính
+Hệ thống ngăn chặn tuyệt đối việc User thuộc Organization này truy cập dữ liệu của Organization khác:
 
-### 4.1 Tạo Nhân viên Mới
+1.  **Lớp bảo vệ Backend Guard (Tại Hub)**:
+    - Mọi API request đều đính kèm JWT (từ Keycloak hoặc Clerk).
+    - Middleware giải mã Token, đọc `org_id` và kiểm tra quyền hạn. Nếu phát hiện request cố tình truyền `org_id` lạ → trả về `403 Forbidden`.
+2.  **Lớp bảo vệ Client / SSO (Tại App con)**:
+    - Odoo/PMS được cấu hình để chỉ chấp nhận Token từ Hub/IdP nếu Token đó chứa đúng `org_id` khớp với Instance đó.
 
-1. Admin tạo hồ sơ nhân viên "An" trên Workspace.
-2. Hệ thống tạo tài khoản đăng nhập cho An (SSO).
-3. Lúc này, An **chưa có tài khoản ở bất kỳ ứng dụng nào**.
+---
 
-### 4.2 Phân quyền cho Nhân viên
+## 5. Luồng Nghiệp vụ Chính (Organization-Centric)
 
-1. Admin vào màn hình phân quyền, gán vai trò "Kế toán" cho An.
-2. Hệ thống tự động truy xuất cấu trúc mapping đã được thiết lập sẵn cho vai trò "Kế toán":
-   - **Odoo**: Gán vào Group `Accountant`, Company `ID_01`, Property `ID_PROP_02`.
-   - **PMS/POS**: (Nếu có cấu hình) Gán Role `Staff`, Company `ID_01`.
-3. Admin nhấn **Lưu**.
-4. Hệ thống tự động thực hiện lệnh Provisioning:
-   - Gửi yêu cầu API kèm theo các **Mapping ID** đã cấu hình tới Odoo/PMS/POS.
-   - Tạo tài khoản và gán đúng các Group/Role/Company/Property như đã định nghĩa.
-   - **Lưu Mapping User ID**: Sau khi App con phản hồi thành công, hệ thống lưu lại liên kết ID giữa Workspace và App con.
-5. An giờ đây có thể click vào icon ứng dụng trên Workspace và vào thẳng với đầy đủ quyền hạn và phạm vi dữ liệu đã định.
+### 5.1 Khởi tạo Tổ chức mới (Onboarding)
 
-### 4.3 Thay đổi Vai trò và Thu hồi Quyền (Dynamic De-provisioning)
+1. Super Admin tạo Organization trên Hub (hoặc qua Clerk Dashboard).
+2. Khai báo các Property trực thuộc.
+3. Cấu hình kết nối API tới các App Instances (Odoo URL).
+4. Thiết lập ma trận Mapping Role cho tổ chức này.
 
-Hệ thống tự động đồng bộ hóa quyền truy cập dựa trên sự thay đổi Vai trò Workspace.
+### 5.2 Quản lý Nhân sự (Provisioning)
 
-1.  **Kịch bản**: Admin đổi vai trò của An từ "Kế toán" (chỉ vào Odoo) sang "Nhân viên Lễ tân" (chỉ vào PMS và POS).
-2.  **So sánh Mapping**: Hệ thống so sánh danh sách ứng dụng của Vai trò cũ và Vai trò mới.
-3.  **Thực thi Tự động**:
-    *   **Cấp quyền mới (Provisioning)**: Tạo tài khoản hoặc cập nhật quyền cho An tại PMS và POS.
-    *   **Thu hồi quyền cũ (De-provisioning)**: Gửi lệnh API tới Odoo để **Vô hiệu hóa (Disable/Lock)** tài khoản của An hoặc gỡ bỏ toàn bộ Group quyền. An sẽ không còn thấy icon Odoo trên Workspace và không thể truy cập trực tiếp vào Odoo.
-4.  **Trạng thái**: Admin nhận được báo cáo xác nhận: "Đã cấp quyền PMS/POS và đã thu hồi quyền Odoo thành công".
+1. Admin mời User vào Org.
+2. Gán nhân viên vào các Property và Role cụ thể.
+3. Hệ thống thực hiện **Provisioning** tự động:
+   - Hub API gọi xuống Odoo/PMS Instance của Org đó để tạo User và gán quyền.
 
-### 4.4 Vô hiệu hóa Nhân viên
+### 5.3 Thay đổi Vai trò và Thu hồi Quyền (Dynamic De-provisioning)
 
-1. Admin vô hiệu hóa tài khoản An trên Workspace.
-2. Hệ thống tự động khóa tài khoản của An ở **tất cả** các ứng dụng cùng lúc.
-3. An không thể đăng nhập vào bất kỳ app nào nữa.
-
-### 4.5 Quản lý Metadata và Mapping ID thủ công
-
-Để đảm bảo tính đơn giản và độc lập giữa các hệ thống:
-
-1. **Không đồng bộ Metadata tự động**: Workspace sẽ không thực hiện quét định kỳ danh sách Role hay Company từ các app con để tránh gây tải hoặc xung đột dữ liệu.
-2. **Cấu hình bằng ID**: Khi thiết lập Mapping cho một Vai trò, Admin sẽ nhập trực tiếp các ID (được lấy từ giao diện quản trị của Odoo/PMS/POS) vào các trường tương ứng trên Workspace.
-3. **Lưu trữ tập trung**: Các ID này được lưu trữ tại Workspace và dùng làm tham số đầu vào cho mọi lệnh API gửi đến các ứng dụng con trong tương lai.
+1. Admin thay đổi Role hoặc xóa User khỏi Org.
+2. Hub API tự động đồng bộ (De-provision): Vô hiệu hóa tài khoản hoặc gỡ quyền tại Odoo/PMS.
 
 ### 5.4 Chuyển đổi Ứng dụng Không chạm (Silent SSO)
 
-Hệ thống cung cấp trải nghiệm điều hướng liền mạch giữa các ứng dụng standalone:
-
-1. **Menu chuyển App (9-dot menu)**: Một thanh điều hướng chung được tích hợp vào tất cả các ứng dụng, cho phép chuyển đổi tức thì.
-2. **Xác thực ngầm (Silent Auth)**: Khi người dùng chuyển sang một ứng dụng mới, ứng dụng đó sẽ tự động gửi yêu cầu xác thực "không làm phiền" (`prompt=none`) tới Keycloak. Nếu phiên đăng nhập hiện tại còn hiệu lực, người dùng sẽ được vào thẳng giao diện mà không hề thấy màn hình login hay phải nhấn bất kỳ nút bấm nào.
+1. **Menu 9-dot**: Tích hợp trên Hub. Chỉ hiển thị App thuộc Org hiện tại.
+2. **Luồng nhảy App**: Khi User click vào Odoo, Hub trao đổi Token hiện tại lấy Session của Odoo và redirect User thẳng vào Odoo (không cần login lại).
 
 ---
 
-## 5. Nguyên tắc Vận hành
+## 6. Kiến trúc Kỹ thuật Chi tiết (Mô hình Hub & Spoke)
 
-### 5.1 Tính Độc lập của Ứng dụng (Standalone)
+### 6.1 Workspace Hub Backend (hub-api)
 
-Các ứng dụng Odoo, PMS, POS vẫn giữ nguyên cách hoạt động hiện tại. Nếu Workspace tạm thời bảo trì:
+- **Identity Middleware**: Xác thực Token từ Keycloak/Clerk.
+- **Org-scoped Guard**: Inject `org_id` vào Prisma context.
+- **Provisioning Drivers**: Chứa logic gọi API Odoo, PMS.
+- **Worker Queue**: Dùng BullMQ đảm bảo lệnh cấp/thu quyền không bị rớt.
 
-- Các app con vẫn hoạt động bình thường cho nghiệp vụ hàng ngày (bán hàng, đặt phòng, kế toán).
-- Tài khoản quản trị kỹ thuật vẫn có thể đăng nhập trực tiếp vào từng app trong trường hợp khẩn cấp.
+### 6.2 Workspace Hub Frontend (hub-web)
 
-### 5.2 Xử lý Sự cố
-
-- Nếu một ứng dụng con đang tạm thời không hoạt động khi Admin nhấn Lưu, hệ thống sẽ tự động thử lại sau vài phút.
-- Admin luôn thấy rõ trạng thái đồng bộ của từng app để có quyết định phù hợp.
-
-### 5.3 Bảo mật
-
-- Mọi giao tiếp giữa Workspace và các ứng dụng đều được **mã hóa (HTTPS)**.
-- Workspace truy cập các ứng dụng con với **tài khoản dịch vụ** có quyền giới hạn tối thiểu.
-- Chỉ IP của Workspace mới được phép gọi API đến các ứng dụng con.
+- **Organization Selector**: Màn hình chọn/đổi Org.
+- **App Launcher**: Giao diện hiển thị App theo Org.
+- **Management Dashboard**: Quản lý Role, Property, Mapping.
 
 ---
 
-## 6. Công nghệ Đề xuất
+## 7. Nguyên tắc Vận hành
 
-| Thành phần              | Công nghệ               | Lý do chọn                                        |
-| :---------------------- | :---------------------- | :------------------------------------------------ |
-| **Giao diện Workspace** | Next.js                 | Đã sử dụng trong dự án hiện tại                   |
-| **Máy chủ Workspace**   | NestJS + Prisma         | Hệ sinh thái phong phú, hỗ trợ xử lý Job ngầm     |
-| **Cơ sở dữ liệu**       | PostgreSQL              | Đồng nhất trên toàn hệ thống                      |
-| **Xử lý ngầm**          | BullMQ + Redis          | Đảm bảo lệnh không mất, tự động thử lại           |
-| **Đăng nhập tập trung** | Keycloak + Custom Theme | Self-hosted, sở hữu dữ liệu, hỗ trợ SSO phức tạp, tối ưu chi phí so với Clerk |
-| **Phân quyền**          | CASL                    | Đã sử dụng trong dự án hiện tại                   |
+### 7.1 Tính Độc lập của Ứng dụng (Standalone)
+
+Các ứng dụng Odoo, PMS vẫn giữ nguyên cách hoạt động. Nếu Workspace bảo trì, App con vẫn chạy bình thường.
+
+### 7.2 Bảo mật
+
+- Giao tiếp HTTPS toàn bộ.
+- `org_id` lấy từ Server (JWT), tuyệt đối không tin client (LocalStorage).
+- Hub API sử dụng Service Account có quyền tối thiểu để gọi xuống App con.
 
 ---
 
-## 7. Lộ trình Triển khai Đề xuất (03 tuần)
+## 8. Công nghệ Đề xuất
 
-| Giai đoạn       | Nội dung                                                                                 | Thời gian |
-| :-------------- | :--------------------------------------------------------------------------------------- | :-------- |
-| **Giai đoạn 1** | Thiết lập Keycloak SSO, Workspace Backend & Core Identity                                | Tuần 1    |
-| **Giai đoạn 2** | Triển khai Provisioning (Tạo user tự động), Mapping Role & Property ID giữa các hệ thống | Tuần 2    |
-| **Giai đoạn 3** | Cấu hình Zero-Login (Silent Auth), tích hợp App Launcher & Kiểm thử toàn hệ thống        | Tuần 3    |
+| Thành phần               | Công nghệ                | Lý do chọn                                              |
+| :----------------------- | :----------------------- | :------------------------------------------------------ |
+| **Giao diện Workspace**  | Next.js                  | Tối ưu SEO, SSR, tương thích cực tốt với Clerk/Keycloak |
+| **Máy chủ Workspace**    | NestJS + Prisma          | Kiến trúc module hóa, hỗ trợ Middleware mạnh mẽ         |
+| **Cơ sở dữ liệu**        | PostgreSQL               | Đồng nhất, hỗ trợ RLS                                   |
+| **Xử lý ngầm**           | BullMQ + Redis           | Đảm bảo tính nhất quán dữ liệu                          |
+| **Đăng nhập (Tùy chọn)** | **Keycloak** / **Clerk** | Đáp ứng được cả chuẩn doanh nghiệp lẫn tốc độ B2B       |
+| **Multi-tenant Guard**   | Prisma Middleware        | Tự động filter dữ liệu theo `orgId`                     |
+
+---
+
+## 9. Lộ trình Triển khai Chi tiết (06 tuần)
+
+_(Ghi chú: Nếu sử dụng Clerk, Giai đoạn 1 và 2 có thể được rút ngắn 30-40% thời gian)._
+
+| Phase      | Tuần      | Nội dung thực hiện chính                                                                                                                                       | Kết quả đạt được                                   |
+| :--------- | :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------- |
+| **MVP**    | **01-02** | - Setup IdP (Keycloak hoặc Clerk).<br>- Xây dựng DB Schema cho Organization & Property.<br>- Tích hợp luồng Auth → Chọn Organization.<br>- Build App Launcher. | User login, chọn Org, xem dashboard thành công.    |
+| **Core**   | **03-04** | - Build module quản trị Org (CRUD, Settings).<br>- Áp dụng Prisma Middleware RLS.<br>- Viết Odoo & PMS API Drivers.<br>- Tích hợp BullMQ chạy Provisioning.    | Admin phân quyền xong, tự động tạo user ở App con. |
+| **Polish** | **05-06** | - Cấu hình luồng nhảy App (Silent SSO).<br>- Test bảo mật chéo (Cross-tenant leak).<br>- Tối ưu luồng Invite User.<br>- Load testing toàn hệ thống.            | Sẵn sàng Go-live.                                  |
 
 ---
 

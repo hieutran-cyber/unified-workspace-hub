@@ -6,7 +6,7 @@ import { Select } from "@/components/shared/Select";
 
 export function EmployeeFilters() {
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("Tất cả trạng thái");
+  const [status, setStatus] = useState("All Status");
 
   return (
     <div className="flex items-center gap-4 py-2">
@@ -15,25 +15,25 @@ export function EmployeeFilters() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm theo tên, email hoặc mã NV..."
+          placeholder="Search by name, email or ID..."
           className="w-full h-10 pl-9 pr-3 rounded-xl border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
         />
       </div>
       <div className="flex items-center gap-2">
          <Select 
             options={[
-              { value: "all", label: "Tất cả nhóm" },
-              { value: "office", label: "Khối Văn phòng" },
-              { value: "hotel", label: "Khách sạn / Hiện trường" }
+              { value: "all", label: "All Groups" },
+              { value: "office", label: "Office Division" },
+              { value: "hotel", label: "Hotel / Field Operations" }
             ]}
             className="w-48"
-            placeholder="Nhóm nhân sự"
+            placeholder="Department Group"
             onChange={() => {}}
          />
          <Select 
             value={status}
             onChange={(val) => setStatus(val)}
-            options={["Tất cả trạng thái", "Đang làm việc", "Nghỉ phép", "Đã nghỉ việc"]}
+            options={["All Status", "Active", "On Leave", "Resigned"]}
             className="w-48"
          />
       </div>

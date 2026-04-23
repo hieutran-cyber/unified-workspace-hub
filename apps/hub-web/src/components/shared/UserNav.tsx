@@ -8,9 +8,13 @@ export function UserNav() {
   const { data: session, status } = useSession();
 
   const handleLogout = async () => {
+    // Xóa organization khỏi localStorage khi đăng xuất
+    localStorage.removeItem("current_org_id");
+
     // If we have an idToken, perform a federated logout from Keycloak
     if (session?.idToken) {
-      const issuer = process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER || "http://localhost:8080/realms/KiNEX";
+      const issuer =
+        process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER || "http://localhost:8080/realms/KiNEX";
       const logoutUrl = `${issuer}/protocol/openid-connect/logout?id_token_hint=${session.idToken}&post_logout_redirect_uri=${window.location.origin}`;
 
       await signOut({ redirect: false });
@@ -30,7 +34,7 @@ export function UserNav() {
       <button
         onClick={handleLogout}
         className="h-10 w-10 rounded-xl bg-muted/50 text-muted-foreground flex items-center justify-center hover:bg-destructive/10 hover:text-destructive transition-all active:scale-95"
-        title="Đăng xuất"
+        title="Sign out"
       >
         <LogOut className="h-4 w-4" />
       </button>
@@ -54,14 +58,14 @@ export function UserNav() {
         {/* Simple Popover */}
         <div className="absolute right-0 top-full mt-3 w-48 bg-card border border-border shadow-2xl rounded-2xl p-1.5 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
           <button className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-            <Settings className="h-4 w-4" /> Cài đặt
+            <Settings className="h-4 w-4" /> Settings
           </button>
           <div className="h-px bg-border/50 my-1" />
           <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-destructive hover:bg-destructive/10 transition-colors"
           >
-            <LogOut className="h-4 w-4" /> Đăng xuất
+            <LogOut className="h-4 w-4" /> Sign out
           </button>
         </div>
       </div>

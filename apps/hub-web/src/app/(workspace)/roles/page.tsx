@@ -45,10 +45,10 @@ export default function RolesPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Ma trận Vai trò × Ứng dụng
+            Role × Application Matrix
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Dữ liệu thực tế từ KiNEX Hub Backend — Cấu hình tập trung cho toàn hệ thống.
+            Live data from KiNEX Hub Backend — Centralized configuration for the entire system.
           </p>
         </div>
         <div className="flex gap-2">
@@ -57,11 +57,11 @@ export default function RolesPage() {
               href="?panel=role&action=create"
               className="h-9 px-4 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center gap-2 hover:opacity-90 transition-opacity"
             >
-              <Plus className="h-4 w-4" /> Thêm vai trò
+              <Plus className="h-4 w-4" /> Add Role
             </Link>
           </HasPermission>
           <button className="h-9 px-4 rounded-lg bg-background border border-border text-foreground text-sm font-semibold flex items-center gap-2 hover:bg-muted transition-colors">
-            <Save className="h-4 w-4" /> Lưu thay đổi
+            <Save className="h-4 w-4" /> Save Changes
           </button>
         </div>
       </div>
@@ -71,8 +71,8 @@ export default function RolesPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground border-b border-border/30">
               <tr>
-                <th className="text-left font-semibold px-5 py-3 min-w-[240px]">Vai trò</th>
-                <th className="text-left font-semibold px-5 py-3">Nhân sự</th>
+                <th className="text-left font-semibold px-5 py-3 min-w-[240px]">Role</th>
+                <th className="text-left font-semibold px-5 py-3">Personnel</th>
                 {(apps || []).map((a) => (
                   <th
                     key={a.id}
@@ -96,7 +96,7 @@ export default function RolesPage() {
                   </td>
                   <td className="px-5 py-4">
                     <span className="text-xs font-mono bg-muted text-foreground px-2 py-0.5 rounded font-bold">
-                      {r._count.users} người
+                      {r._count.users} users
                     </span>
                   </td>
                   {(apps || []).map((app) => {
@@ -132,14 +132,14 @@ export default function RolesPage() {
       <div className="grid sm:grid-cols-2 gap-6">
         <div className="p-6 rounded-xl border border-border bg-card shadow-sm">
           <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-4">
-            Đang hoạt động (Real-time)
+            Activities (Real-time)
           </div>
           <ol className="space-y-4 text-sm">
             {[
-              "Database đã sẵn sàng với PostgreSQL",
-              "API đồng bộ người dùng từ Keycloak đã kích hoạt",
-              "Ma trận quyền đang đọc trực tiếp từ bảng CentralRole",
-              "Hệ thống Provisioning (BullMQ) đang chờ lệnh",
+              "Database ready with PostgreSQL",
+              "User synchronization from Keycloak active",
+              "Permission matrix reading from CentralRole table",
+              "Provisioning system (BullMQ) standby",
             ].map((t, i) => (
               <li key={i} className="flex gap-4">
                 <span className="h-6 w-6 rounded-full bg-primary-soft text-accent-foreground text-[11px] font-bold grid place-items-center shrink-0">
@@ -152,7 +152,7 @@ export default function RolesPage() {
         </div>
         <div className="p-6 rounded-xl border border-border bg-gradient-to-br from-primary-soft/50 to-card shadow-sm flex flex-col justify-center">
           <div className="text-xs uppercase tracking-widest font-bold text-muted-foreground mb-2">
-            Trạng thái Hệ thống
+            System Status
           </div>
           <div className="text-4xl font-bold tracking-tight text-success">ONLINE</div>
           <div className="text-sm text-muted-foreground mt-2 font-medium">

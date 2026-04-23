@@ -5,7 +5,12 @@ import { cn } from "@/lib/utils";
 
 const apps = [
   { name: "Odoo", color: "bg-[oklch(0.7_0.15_290)]", label: "ERP", href: "#" },
-  { name: "PMS", color: "bg-[oklch(0.65_0.15_200)]", label: "Hotel", href: "http://localhost:3005" },
+  {
+    name: "PMS",
+    color: "bg-[oklch(0.65_0.15_200)]",
+    label: "Hotel",
+    href: "http://localhost:3005",
+  },
   { name: "POS", color: "bg-[oklch(0.7_0.16_145)]", label: "Sales", href: "#" },
   { name: "Analytics", color: "bg-[oklch(0.72_0.15_50)]", label: "BI", href: "#" },
 ];
@@ -15,7 +20,7 @@ export function AppSwitcher() {
     <div className="relative group">
       <button
         className="h-9 w-9 grid place-items-center rounded-lg hover:bg-muted text-muted-foreground transition-all active:scale-95"
-        title="Chuyển đổi ứng dụng"
+        title="App Switcher"
       >
         <LayoutGrid className="h-[18px] w-[18px]" />
       </button>
@@ -23,7 +28,7 @@ export function AppSwitcher() {
       {/* App Switcher Dropdown */}
       <div className="absolute right-0 top-full mt-2 w-72 bg-card/95 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
         <div className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 px-2 tracking-widest">
-          Ứng dụng của bạn
+          Your Applications
         </div>
         <div className="grid grid-cols-3 gap-y-6 gap-x-2">
           {apps.map((app) => (
@@ -47,7 +52,7 @@ export function AppSwitcher() {
         <div className="mt-6 pt-4 border-t border-border flex justify-between items-center px-1">
           <span className="text-[10px] text-muted-foreground italic">Powered by KiNEX SSO</span>
           <button className="text-[10px] text-primary font-bold hover:underline">
-            Tất cả ứng dụng
+            All Applications
           </button>
         </div>
       </div>

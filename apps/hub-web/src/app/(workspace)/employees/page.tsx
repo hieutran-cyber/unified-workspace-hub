@@ -47,21 +47,21 @@ export default function EmployeesPage() {
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Danh sách Nhân sự ({users.length})
+            Personnel List ({users.length})
           </h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Dữ liệu nhân viên từ KiNEX Hub Backend — Đồng bộ Keycloak & Odoo.
+            Employee data from KiNEX Hub Backend — Syncing Keycloak & Odoo.
           </p>
         </div>
         <div className="flex gap-2">
           <button className="h-10 px-4 rounded-xl border border-border bg-card text-sm flex items-center gap-2 hover:bg-muted text-foreground font-medium transition-colors">
-            <Download className="h-4 w-4" /> Xuất Excel
+            <Download className="h-4 w-4" /> Export Excel
           </button>
           <Link
             href="?panel=employee&action=create"
             className="h-10 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-lg shadow-primary/20 transition-all active:scale-95"
           >
-            <Plus className="h-4 w-4" /> Thêm nhân viên
+            <Plus className="h-4 w-4" /> Add Employee
           </Link>
         </div>
       </div>
@@ -73,11 +73,11 @@ export default function EmployeesPage() {
           <table className="w-full text-sm">
             <thead className="bg-muted/30 text-xs uppercase tracking-wider text-muted-foreground border-b border-border/30">
               <tr>
-                <th className="text-left font-semibold px-5 py-4 min-w-[250px]">Họ tên & Email</th>
-                <th className="text-left font-semibold px-5 py-4">Phân loại</th>
-                <th className="text-left font-semibold px-5 py-4">Vai trò</th>
-                <th className="text-left font-semibold px-5 py-4">Hình thức</th>
-                <th className="text-left font-semibold px-5 py-4">Trạng thái</th>
+                <th className="text-left font-semibold px-5 py-4 min-w-[250px]">Name & Email</th>
+                <th className="text-left font-semibold px-5 py-4">Category</th>
+                <th className="text-left font-semibold px-5 py-4">Role</th>
+                <th className="text-left font-semibold px-5 py-4">Employment</th>
+                <th className="text-left font-semibold px-5 py-4">Status</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border/30">

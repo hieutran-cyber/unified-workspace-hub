@@ -17,8 +17,8 @@ import { useApplications } from "@/hooks/api/use-apps";
 import { cn } from "@/lib/utils";
 
 const stats = [
-  { label: "Ứng dụng đã kích hoạt", value: "3 / 4", icon: Activity, tone: "text-primary" },
-  { label: "Đồng nghiệp online", value: "47", icon: Users, tone: "text-primary" },
+  { label: "Active Applications", value: "3 / 4", icon: Activity, tone: "text-primary" },
+  { label: "Colleagues Online", value: "47", icon: Users, tone: "text-primary" },
 ];
 
 const APP_CONFIG: Record<string, { icon: LucideIcon; color: string }> = {
@@ -55,10 +55,10 @@ export default function LauncherPage() {
     <div className="p-8 max-w-6xl mx-auto space-y-8 font-sans">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-          Xin chào, Admin 👋
+          Welcome back, Admin 👋
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          Chọn ứng dụng để tiếp tục — đã đăng nhập tự động (Zero-Login).
+          Select an application to continue — automatic sign-on enabled (Zero-Login).
         </p>
       </div>
 
@@ -77,9 +77,9 @@ export default function LauncherPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-            Ứng dụng của bạn
+            Your Applications
           </h2>
-          <span className="text-xs text-muted-foreground">Vai trò: Giám đốc vùng</span>
+          <span className="text-xs text-muted-foreground">Role: Regional Director</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {(apps || []).map((app) => (
@@ -106,14 +106,14 @@ export default function LauncherPage() {
                 <div className="text-xs text-muted-foreground mt-0.5">{app.description}</div>
               </div>
               <div className="mt-4 flex items-center justify-between">
-                <span className="text-[11px] text-muted-foreground font-medium">Truy cập</span>
+                <span className="text-[11px] text-muted-foreground font-medium">Access</span>
                 {app.status === "active" ? (
                   <span className="inline-flex items-center gap-1 text-[11px] text-success font-semibold">
-                    <CheckCircle2 className="h-3 w-3" /> Sẵn sàng
+                    <CheckCircle2 className="h-3 w-3" /> Ready
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[11px] text-warning-foreground font-semibold">
-                    <Clock className="h-3 w-3" /> Đang cấp
+                    <Clock className="h-3 w-3" /> Provisioning
                   </span>
                 )}
               </div>
@@ -123,23 +123,23 @@ export default function LauncherPage() {
       </div>
 
       <div className="p-5 rounded-xl border border-border bg-card">
-        <h3 className="text-sm font-semibold mb-4 text-foreground">Hoạt động gần đây</h3>
+        <h3 className="text-sm font-semibold mb-4 text-foreground">Recent Activity</h3>
         <div className="space-y-3 text-sm">
           {[
             {
-              t: "2 phút trước",
-              a: "Nguyễn Văn An",
-              e: "đã được gán vai trò Kế toán, kích hoạt Odoo",
+              t: "2 minutes ago",
+              a: "Nguyen Van An",
+              e: "was assigned Accountant role, Odoo activated",
             },
             {
-              t: "15 phút trước",
-              a: "Trần Thị Bình",
-              e: "đổi vai trò Lễ tân → Giám đốc vùng, cấp thêm PMS + POS",
+              t: "15 minutes ago",
+              a: "Tran Thi Binh",
+              e: "changed role Receptionist → Regional Director, granted PMS + POS",
             },
             {
-              t: "1 giờ trước",
-              a: "Hệ thống",
-              e: "đã đồng bộ thành công dữ liệu nhân sự xuống Odoo & PMS",
+              t: "1 hour ago",
+              a: "System",
+              e: "successfully synchronized personnel data to Odoo & PMS",
             },
           ].map((x, i) => (
             <div
