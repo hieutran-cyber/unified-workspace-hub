@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   description: "Unified Enterprise Workspace Hub",
 };
 
-import { Providers } from "@/components/shared/Providers";
+import { AuthProviders as Providers } from "@/components/shared/AuthProviders";
 
 export default function RootLayout({
   children,

@@ -2,8 +2,11 @@ import { Module } from "@nestjs/common";
 import { PassportModule } from "@nestjs/passport";
 import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./jwt.strategy";
+import { ClerkStrategy } from "./clerk.strategy";
 import { DatabaseModule } from "../database/database.module";
 import { KeycloakAdminService } from "./keycloak-admin.service";
+import { ClerkAdminService } from "./clerk-admin.service";
+import { MultiAuthGuard } from "./multi-auth.guard";
 
 import { PermissionsGuard } from "./permissions.guard";
 
@@ -17,7 +20,22 @@ import { ProvisioningModule } from "../provisioning/provisioning.module";
     forwardRef(() => ProvisioningModule),
   ],
   controllers: [AuthController],
-  providers: [JwtStrategy, KeycloakAdminService, PermissionsGuard],
-  exports: [PassportModule, JwtStrategy, KeycloakAdminService, PermissionsGuard],
+  providers: [
+    JwtStrategy,
+    ClerkStrategy,
+    KeycloakAdminService,
+    ClerkAdminService,
+    PermissionsGuard,
+    MultiAuthGuard,
+  ],
+  exports: [
+    PassportModule,
+    JwtStrategy,
+    ClerkStrategy,
+    KeycloakAdminService,
+    ClerkAdminService,
+    PermissionsGuard,
+    MultiAuthGuard,
+  ],
 })
 export class AuthModule {}

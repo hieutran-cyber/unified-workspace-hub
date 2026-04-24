@@ -12,6 +12,7 @@ model User {
   email      String           @unique
   name       String?
   keycloakId String?          @unique
+  clerkUserId String?         @unique
   createdAt  DateTime         @default(now())
   updatedAt  DateTime         @updatedAt
   avatarUrl  String?

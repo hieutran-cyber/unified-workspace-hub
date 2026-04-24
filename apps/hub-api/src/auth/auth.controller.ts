@@ -12,7 +12,15 @@ export class AuthController {
   ) {}
 
   @Post("sync")
-  async syncUser(@Body() userData: { email: string; name?: string; sub: string }) {
+  async syncUser(
+    @Body()
+    userData: {
+      email: string;
+      name?: string;
+      sub: string;
+      provider?: "keycloak" | "clerk";
+    },
+  ) {
     console.log(`🔄 Attempting to sync user: ${userData.email}`);
 
     if (!userData.email) {
@@ -55,11 +63,14 @@ export class AuthController {
       throw new ForbiddenException("Tài khoản của bạn chưa được cấp quyền truy cập.");
     }
 
+    const providerIdField =
+      userData.provider === "clerk" ? { clerkUserId: userData.sub } : { keycloakId: userData.sub };
+
     return this.prisma.user.update({
       where: { email: userData.email },
       data: {
         name: userData.name || existingUser.name,
-        keycloakId: userData.sub,
+        ...providerIdField,
         status: "active",
       },
     });
