@@ -6,7 +6,7 @@ import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 function LandingPageContent() {
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
@@ -17,7 +17,8 @@ function LandingPageContent() {
 
     if (status === "authenticated") {
       navigationTriggered.current = true;
-      router.push("/launcher");
+      localStorage.removeItem("current_org_id");
+      router.push("/select-org");
     } else if (status === "unauthenticated" && !error) {
       navigationTriggered.current = true;
       const timeout = setTimeout(() => {
