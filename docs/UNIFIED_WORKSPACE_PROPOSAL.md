@@ -734,6 +734,128 @@ Provisioning là tác vụ **phải đảm bảo eventually-consistent** — n�
 
 ---
 
+## 9.A Phương án Provisioning Thay thế: Just-in-Time (JIT) Sync
+
+Song song với phương án **Eager Provisioning** (mục §8.2 + §9.1 — đẩy mọi thay đổi xuống App con ngay lập tức qua BullMQ), tài liệu này đề xuất một phương án thay thế: **Just-in-Time Provisioning**. Mọi role/property/company được lưu tập trung tại Hub; việc đồng bộ xuống Odoo/PMS/POS chỉ xảy ra **tại thời điểm user switch app**, thông qua một middleware SSO.
+
+### 9.A.1 Nguyên lý vận hành
+
+```diagram jit-sync
+Admin (Hub Web)         Hub DB              [... user offline ...]
+  |                        |
+  |-- Assign Role -------->|  (chỉ ghi vào Hub DB, KHÔNG gọi Odoo)
+  |<-- 200 OK -------------|
+  |
+  [... sau đó, user click Odoo ...]
+
+User (Browser)      Hub API /sso/odoo       Odoo Instance
+  |                      |                      |
+  |-- Click Odoo ------->|                      |
+  |                      |-- 1. Đọc Hub DB:     |
+  |                      |   current roles,     |
+  |                      |   company, property  |
+  |                      |                      |
+  |                      |-- 2. So sánh với     |
+  |                      |   LastSyncedState    |
+  |                      |   (cache 5 phút)     |
+  |                      |                      |
+  |                      |-- 3. Nếu khác ------>|
+  |                      |   PATCH user         |
+  |                      |<-- 200 OK ---------- |
+  |                      |                      |
+  |                      |-- 4. Update cache    |
+  |                      |   LastSyncedState    |
+  |                      |                      |
+  |                      |-- 5. Generate SSO -->|
+  |<-- Redirect + token -|                      |
+  |------------------------------- GET -------->|
+  |<-- Odoo App -------------------------------|
+```
+
+### 9.A.2 Ý tưởng cốt lõi
+
+- **Hub DB = Source of Truth duy nhất**. App con chỉ là cache.
+- **Không có BullMQ cho role changes**: admin edit role/property → chỉ ghi Hub DB.
+- **Middleware SSO**: đặt tại Hub, chạy trước mỗi lần redirect sang app con:
+  1. Đọc state hiện tại của user từ Hub DB.
+  2. Hash state, so sánh với `LastSyncedState` lưu trong bảng `UserAppSyncCache`.
+  3. Nếu khác → gọi API app con để PATCH user (role, company, department, active).
+  4. Cập nhật `LastSyncedState` + timestamp.
+  5. Phát hành SSO token → redirect.
+- **Cache TTL 5 phút**: tránh gọi API khi user switch app liên tục trong phiên làm việc.
+
+### 9.A.3 Mô hình Hybrid (khuyến nghị thực tế)
+
+JIT thuần túy không xử lý được các tác vụ **App con chủ động gọi tới user** (gửi email thông báo, cron job, device sync). Do đó khuyến nghị **hybrid**:
+
+| Loại thay đổi                             | Chiến lược          | Lý do                                                                                    |
+| :---------------------------------------- | :------------------ | :--------------------------------------------------------------------------------------- |
+| **Tạo user mới** (onboarding)             | **Eager**           | Cần tồn tại ngay để nhận welcome email, reference từ cron/report của app con.            |
+| **Suspend / xoá user** (nghỉ việc)        | **Eager**           | Security: phải revoke tức thì ở mọi app, không chờ user click.                           |
+| **Update role / property / department**   | **JIT**             | Thay đổi thường xuyên, không critical realtime, app con chỉ cần đúng khi user đang dùng. |
+| **Bulk reorganization** (đổi phòng ban)   | **Background batch** | Job chạy đêm, không chặn UX ban ngày.                                                    |
+| **Active user chưa login 24h**            | **Background sweep** | Cron đêm sync cho các user có `LastSyncedState` cũ hơn DB state, đảm bảo email/cron đúng. |
+
+### 9.A.4 Cấu trúc dữ liệu bổ sung
+
+```
+UserAppSyncCache
+  |-- userId        FK -> User
+  |-- appId         FK -> Application  (Odoo / PMS / POS per org)
+  |-- stateHash     String   (hash của roles + company + property + department)
+  |-- lastSyncedAt  DateTime
+  |-- lastSyncedPayload  Json  (debug: state đã push lần gần nhất)
+  |-- @@unique([userId, appId])
+```
+
+Mỗi khi middleware chạy: `currentHash = sha256(JSON.stringify(state))`. So với `stateHash` trong cache → nếu khác → sync → cập nhật hash.
+
+### 9.A.5 So sánh chi tiết hai phương án
+
+| Tiêu chí                                      | **Eager Provisioning** (phương án gốc §8.2)            | **JIT Provisioning** (phương án này §9.A)                      | Thắng                 |
+| :-------------------------------------------- | :----------------------------------------------------- | :------------------------------------------------------------- | :-------------------- |
+| **Độ phức tạp hạ tầng**                       | BullMQ + Redis + DLQ + Worker process + Alert system   | Chỉ cần bảng `UserAppSyncCache`, middleware sync inline         | **JIT** (đơn giản hơn) |
+| **Consistency giữa Hub ↔ App con**            | Eventually consistent; có cửa sổ lệch khi job fail      | Strong consistency tại thời điểm user vào app                  | **JIT**               |
+| **Latency khi admin thay đổi role**           | Thấy thay đổi ở app con sau vài giây (job processing)   | Admin edit xong lập tức reflect ở Hub; app con cập nhật khi user login | Tuỳ use case |
+| **Latency khi user click app**                | ~200ms (chỉ SSO redirect)                              | ~500ms–2s lần đầu (SSO + sync API); cache hit = giống eager    | **Eager** (UX mượt hơn) |
+| **Peak load 8h sáng (500 user cùng login)**   | Không ảnh hưởng (đã provision sẵn đêm trước)           | 500 sync request cùng lúc → có thể quá tải Odoo                 | **Eager**              |
+| **Tác vụ App con chủ động** (email, cron)     | Hoạt động: user tồn tại sẵn trong DB app                | **Lỗi**: user có thể chưa exist nếu chưa từng login             | **Eager**              |
+| **Device sync (PMS khóa phòng, POS offline)** | OK                                                      | **Không OK** nếu device cần state mới nhất mà user chưa login  | **Eager**              |
+| **De-provisioning (nghỉ việc)**               | Chủ động push suspend xuống app                         | Phải bổ sung eager-path riêng (hybrid)                          | **Eager**              |
+| **Xử lý App con down**                        | Retry qua BullMQ, cuối cùng DLQ + alert admin           | User click app → middleware fail → block user tại Hub, rollback state change không cần thiết | Ngang — tuỳ UX mong muốn |
+| **Audit trail "khi nào role apply"**           | Rõ ràng: timestamp job success                         | Mờ: "khi user click", có thể không xảy ra nếu user không dùng   | **Eager**              |
+| **Cost khi user inactive**                    | Vẫn provision đầy đủ dù user không bao giờ vào app     | Không sync → tiết kiệm API calls                                 | **JIT**                |
+| **Rollback khi sync sai**                     | Khó: đã push xuống nhiều app, phải chạy compensate     | Dễ: sửa Hub DB, lần sau user click tự sync đúng                  | **JIT**                |
+| **Multi-instance / White-label per Org**      | Mỗi org có worker riêng, cấu hình phức tạp             | Middleware đọc `Application.baseUrl` theo org, đơn giản         | **JIT**                |
+| **Testing**                                   | Phức tạp: mock queue, wait for async job               | Đơn giản: gọi HTTP middleware là test được                       | **JIT**                |
+
+### 9.A.6 Khi nào chọn phương án nào
+
+**Chọn Eager (§8.2) nếu:**
+- App con có nhiều luồng **chủ động gọi tới user** (Odoo email workflow, PMS front-desk notifications, POS device sync).
+- Yêu cầu audit compliance chặt chẽ (bank/insurance): cần biết chính xác khi nào role effective.
+- Expected peak login rất cao (>500 concurrent), không chấp nhận latency sync lúc click app.
+- Admin cần khả năng "xem ngay trên Odoo" user vừa được cấp role để verify.
+
+**Chọn JIT / Hybrid (§9.A) nếu:**
+- App con chủ yếu hoạt động **passive/request-response** (user login → làm việc → logout).
+- Team nhỏ, muốn giảm devops burden (không maintain BullMQ + Redis + DLQ).
+- Role/property thay đổi **thường xuyên** (nhiều lần/ngày/user); eager sẽ tạo bão API.
+- Muốn source-of-truth rõ ràng, dễ rollback khi sai phân quyền.
+- Có thể chấp nhận thêm 500ms–2s khi user lần đầu click app trong ngày.
+
+### 9.A.7 Khuyến nghị cho KiNEX
+
+Dựa trên phân tích: **Odoo có luồng email workflow + cron** (nghỉ phép, duyệt đơn) và **PMS có device sync với khóa phòng**, kiến trúc phù hợp nhất là **Hybrid §9.A.3**:
+
+- **Eager** cho `user.create`, `user.suspend`, `user.delete`.
+- **JIT + cache** cho `role.change`, `property.change`, `department.change`.
+- **Background sweep** chạy đêm cho user đã có thay đổi nhưng không login trong 24h — đảm bảo app con luôn có state đúng cho tác vụ chủ động.
+
+Cách tiếp cận hybrid giữ được **90% lợi ích của JIT** (giảm phức tạp, source of truth rõ ràng, rollback dễ) và **không đánh đổi UX/compliance** của eager. Effort implement ước tính **giảm 30–40%** so với phương án eager thuần túy, chủ yếu do bỏ được BullMQ worker cho role changes.
+
+---
+
 ## 10. Nguyên tắc Vận hành
 
 ### 10.1 Tính Độc lập của Ứng dụng (Standalone)

@@ -11,7 +11,8 @@ import { OrgSwitcher } from "@/components/shared/OrgSwitcher";
 import { Suspense, useEffect } from "react";
 import { useOrganization } from "@/hooks/use-organization";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/hooks/use-auth";
+import { usePermissions } from "@/hooks/use-permissions";
 
 const operationalNav = [
   { href: "/launcher", label: "App Launcher", icon: LayoutGrid },
@@ -25,26 +26,29 @@ const operationalNav = [
   { href: "/roles", label: "Permissions", icon: ShieldCheck, permission: "hub:roles:view" },
 ];
 
-const systemNav = [{ href: "/manage-org", label: "Organization Management", icon: Building2 }];
-
-import { usePermissions } from "@/hooks/use-permissions";
+const systemNav = [
+  {
+    href: "/manage-org",
+    label: "Organization Management",
+    icon: Building2,
+    permission: "hub:org:manage",
+  },
+];
 
 export default function WorkspaceLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { hasPermission } = usePermissions();
-  const { currentOrg, isLoading } = useOrganization();
-  const { data: session, status } = useSession();
+  const { currentOrg, isLoading: orgLoading } = useOrganization();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    // Chỉ chuyển hướng nếu ĐÃ đăng nhập nhưng CHƯA chọn Org
-    if (status === "authenticated" && !isLoading && !currentOrg && pathname !== "/select-org") {
+    if (isAuthenticated && !orgLoading && !currentOrg && pathname !== "/select-org") {
       router.push("/select-org");
     }
-  }, [currentOrg, isLoading, router, pathname, status]);
+  }, [currentOrg, orgLoading, router, pathname, isAuthenticated]);
 
-  // Hiển thị loading nếu đang kiểm tra session hoặc org
-  if (status === "loading" || (status === "authenticated" && isLoading)) {
+  if (authLoading || (isAuthenticated && orgLoading)) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -52,11 +56,10 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Nếu đã chọn Org hoặc đang ở trang chọn Org thì cho phép render
   const canRender = currentOrg || pathname === "/select-org";
 
-  if (!canRender && status === "authenticated") {
-    return null; // Đang chờ useEffect redirect
+  if (!canRender && isAuthenticated) {
+    return null;
   }
 
   return (
@@ -102,24 +105,26 @@ export default function WorkspaceLayout({ children }: { children: React.ReactNod
             <div className="px-3 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-60">
               System
             </div>
-            {systemNav.map((item) => {
-              const active = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
-                    active
-                      ? "bg-primary-soft text-accent-foreground font-medium"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                  )}
-                >
-                  <item.icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              );
-            })}
+            {systemNav
+              .filter((item) => !item.permission || hasPermission(item.permission))
+              .map((item) => {
+                const active = pathname.startsWith(item.href);
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                      active
+                        ? "bg-primary-soft text-accent-foreground font-medium"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    <item.icon className="h-4 w-4" />
+                    {item.label}
+                  </Link>
+                );
+              })}
           </div>
         </div>
 

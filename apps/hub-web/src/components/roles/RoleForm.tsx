@@ -1,451 +1,570 @@
 "use client";
 
 import { FormField, inputClasses } from "@/components/shared/FormField";
+import { toast } from "sonner";
+import {
+  ShieldAlert,
+  Info,
+  Check,
+  Loader2,
+  Save,
+  Globe,
+  Settings2,
+  ChevronDown,
+  ChevronUp,
+  LayoutGrid,
+  ShieldCheck,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useState, useEffect, useMemo } from "react";
+import { useRole, useUpdateRole, useCreateRole, usePermissions } from "@/hooks/api/use-roles";
+import { useApps } from "@/hooks/api/use-apps";
+import { useOrganizations } from "@/hooks/api/use-organizations";
+import { useProperties } from "@/hooks/api/use-properties";
 import { Select } from "@/components/shared/Select";
 import { MultiSelect } from "@/components/shared/MultiSelect";
-import { ShieldAlert, Info, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
-import { useRole, useSaveRole } from "@/hooks/api/use-roles";
 
 interface RoleFormProps {
   id?: string;
   onClose: () => void;
 }
 
+interface AppMapping {
+  appId: string;
+  appRoleName: string;
+  appGroups: string[];
+  appProperties: string[];
+  appOutlets: string[];
+  appCompanies: string[];
+  appDepartments: string[];
+  isEnabled?: boolean;
+}
+
+// --- Mock Data for Selectors ---
+const MOCK_ODOO_COMPANIES = [
+  { value: "odoo-c1", label: "Kinex One" },
+  { value: "odoo-c2", label: "Kinex Two" },
+  { value: "odoo-c3", label: "Kinex Three" },
+];
+
+const MOCK_POS_PMS_COMPANIES = [
+  { value: "comp-a", label: "Company A" },
+  { value: "comp-b", label: "Company B" },
+  { value: "comp-c", label: "Company C" },
+];
+
+const MOCK_OUTLETS = [
+  { value: "o1", label: "Nhà hàng Blue", propertyId: "p1" },
+  { value: "o2", label: "Spa Serenity", propertyId: "p1" },
+  { value: "o3", label: "Bar Sunset", propertyId: "p2" },
+  { value: "o4", label: "Quầy Thu Ngân 01", propertyId: "p3" },
+];
+
+const MOCK_GROUPS = [
+  { value: "g1", label: "Accounting" },
+  { value: "g2", label: "Human Resources" },
+  { value: "g3", label: "Sales" },
+  { value: "g4", label: "Warehouse" },
+];
+
+const MOCK_DEPARTMENTS = [
+  { value: "d1", label: "IT Department" },
+  { value: "d2", label: "Finance" },
+  { value: "d3", label: "Operations" },
+];
+
+const APP_ROLES = [
+  { value: "admin", label: "Admin" },
+  { value: "manager", label: "Manager" },
+  { value: "supervisor", label: "Supervisor" },
+  { value: "user", label: "User" },
+];
+
 export function RoleForm({ id, onClose }: RoleFormProps) {
   const isEdit = !!id;
-  const apps = ["Odoo", "PMS", "POS"];
 
   // 1. API Hooks
-  const { data: role, isLoading } = useRole(id);
-  const saveRole = useSaveRole(id);
+  const { data: role, isLoading: roleLoading } = useRole(id);
+  const { data: apps, isLoading: appsLoading } = useApps();
+  const { data: availablePermissions, isLoading: permsLoading } = usePermissions();
+  const { data: organizations, isLoading: orgsLoading } = useOrganizations();
+  const { data: properties, isLoading: propsLoading } = useProperties();
 
-  // Mock data for options
-  const MOCK_GROUPS = [
-    { value: "accountant", label: "Accounting / Billing" },
-    { value: "sales_manager", label: "Accounting / Bookeeper" },
-    { value: "inventory_user", label: "Accounting / Readonly" },
-    { value: "admin", label: "Accounting / Accountant" },
-  ];
+  const updateRole = useUpdateRole();
+  const createRole = useCreateRole();
 
-  const MOCK_COMPANIES = [
-    { value: "kinex_sg", label: "KiNEX One" },
-    { value: "kinex_dl", label: "KiNEX Two" },
-    { value: "kinex_hn", label: "KiNEX Three" },
-  ];
+  // 2. State
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
+  const [mappings, setMappings] = useState<Record<string, AppMapping>>({});
+  const [expandedApps, setExpandedApps] = useState<string[]>([]);
 
-  const MOCK_DEPARTMENTS = [
-    { value: "hr", label: "Human Resources" },
-    { value: "it", label: "IT Department" },
-    { value: "accounting", label: "Accounting" },
-    { value: "sales", label: "Sales" },
-    { value: "marketing", label: "Marketing" },
-  ];
-  const MOCK_COMPANIES_PMS = [
-    { value: "kinex_sg", label: "KiNEX PMS 1" },
-    { value: "kinex_dl", label: "KiNEX PMS 2" },
-    { value: "kinex_hn", label: "KiNEX PMS 3" },
-  ];
+  // 3. Formatted Data for Selects
+  const organizationOptions = useMemo(
+    () =>
+      organizations?.map((org) => ({
+        value: org.id,
+        label: org.name,
+      })) || [],
+    [organizations],
+  );
 
-  const MOCK_APP_ROLES = [
-    { value: "receptionist", label: "Receptionist / Lễ tân" },
-    { value: "manager", label: "Manager / Quản lý" },
-    { value: "cashier", label: "Cashier / Thu ngân" },
-    { value: "housekeeper", label: "Housekeeper / Buồng phòng" },
-  ];
+  const propertyOptions = useMemo(
+    () =>
+      properties?.map((prop) => ({
+        value: prop.id,
+        label: prop.name,
+        organizationId: prop.organizationId,
+      })) || [],
+    [properties],
+  );
 
-  const MOCK_PROPERTIES: Record<string, { value: string; label: string }[]> = {
-    kinex_sg: [
-      { value: "sg_hotel_1", label: "KiNEX Hotel Saigon Central" },
-      { value: "sg_hotel_2", label: "KiNEX Resort Beachfront" },
-      { value: "sg_hotel_3", label: "KiNEX Suites Landmark" },
-    ],
-    kinex_dl: [
-      { value: "dl_hotel_1", label: "KiNEX Dalat Palace" },
-      { value: "dl_hotel_2", label: "KiNEX Valley View" },
-      { value: "dl_hotel_3", label: "KiNEX Pine Hill" },
-    ],
-    kinex_hn: [
-      { value: "hn_hotel_1", label: "KiNEX Hanoi Old Quarter" },
-      { value: "hn_hotel_2", label: "KiNEX West Lake" },
-      { value: "hn_hotel_3", label: "KiNEX Opera House" },
-    ],
-  };
+  const dynamicOutlets = useMemo(() => {
+    if (!properties || properties.length === 0) return MOCK_OUTLETS;
+    return MOCK_OUTLETS.map((o, idx) => ({
+      ...o,
+      propertyId: properties[idx % properties.length].id,
+    }));
+  }, [properties]);
 
-  const MOCK_OUTLETS: Record<string, { value: string; label: string }[]> = {
-    sg_hotel_1: [
-      { value: "sg1_restaurant", label: "The Grand Dining" },
-      { value: "sg1_bar", label: "Sky Lounge" },
-      { value: "sg1_spa", label: "Zen Spa" },
-    ],
-    sg_hotel_2: [
-      { value: "sg2_pool", label: "Poolside Grill" },
-      { value: "sg2_cafe", label: "Ocean Coffee" },
-      { value: "sg2_gym", label: "Fit Center" },
-    ],
-    // ... Thêm cho các khách sạn khác tương tự để demo
-  };
+  // 4. Grouped Permissions for UI
+  const groupedPermissions = useMemo(() => {
+    if (!availablePermissions) return {};
+    const groups: Record<string, any[]> = {};
+    availablePermissions.forEach((p) => {
+      const parts = p.name.split(":");
+      const groupName = parts.length > 1 ? `${parts[0]}:${parts[1]}` : "other";
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(p);
+    });
+    return groups;
+  }, [availablePermissions]);
 
-  // Tạo thêm dữ liệu outlet cho demo phong phú
-  [
-    "sg_hotel_3",
-    "dl_hotel_1",
-    "dl_hotel_2",
-    "dl_hotel_3",
-    "hn_hotel_1",
-    "hn_hotel_2",
-    "hn_hotel_3",
-  ].forEach((id) => {
-    MOCK_OUTLETS[id] = [
-      { value: `${id}_rs`, label: `Restaurant ${id.split("_")[1]}` },
-      { value: `${id}_br`, label: `Bar ${id.split("_")[1]}` },
-      { value: `${id}_lf`, label: `Leaf Cafe ${id.split("_")[1]}` },
-    ];
-  });
-
-  const HUB_PERMISSIONS = [
-    {
-      id: "hub:users:view",
-      label: "Xem danh sách nhân viên",
-      description: "Cho phép xem thông tin nhân viên",
-    },
-    {
-      id: "hub:users:manage",
-      label: "Quản lý nhân viên",
-      description: "Tạo, sửa, xóa và phân quyền nhân viên",
-    },
-    {
-      id: "hub:roles:view",
-      label: "Xem danh sách vai trò",
-      description: "Xem ma trận Role-App Matrix",
-    },
-    {
-      id: "hub:roles:manage",
-      label: "Quản lý vai trò",
-      description: "Định nghĩa và chỉnh sửa mapping vai trò",
-    },
-    {
-      id: "hub:apps:view",
-      label: "Xem danh sách ứng dụng",
-      description: "Xem các ứng dụng trong hệ sinh thái",
-    },
-    {
-      id: "hub:apps:manage",
-      label: "Quản lý ứng dụng",
-      description: "Cấu hình kết nối các ứng dụng",
-    },
-    {
-      id: "hub:properties:view",
-      label: "Xem danh sách cơ sở",
-      description: "Cho phép xem danh sách các Property",
-    },
-    {
-      id: "hub:properties:manage",
-      label: "Quản lý cơ sở",
-      description: "Tạo, sửa và đồng bộ Property liên hệ thống",
-    },
-    {
-      id: "hub:access",
-      label: "Truy cập Workspace",
-      description: "Quyền tối thiểu để đăng nhập vào hệ thống Hub",
-    },
-  ];
-
-  // State to track active apps for this role
-  const [activeApps, setActiveApps] = useState<Record<string, boolean>>({
-    Odoo: isEdit,
-    PMS: false,
-    POS: false,
-  });
-
-  const [selectedHubPerms, setSelectedHubPerms] = useState<string[]>([]);
-  const [roleName, setRoleName] = useState("");
-  const [roleDesc, setRoleDesc] = useState("");
-
-  // Detailed app configurations
-  const [appConfigs, setAppConfigs] = useState<Record<string, any>>({
-    Odoo: { groups: [], company: "", department: "" },
-    PMS: { role: "", company: "", properties: [], outlets: [] },
-    POS: { role: "", company: "", properties: [], outlets: [] },
-  });
-
-  // Fetch real data for edit mode
+  // 5. Effect: Load existing data
   useEffect(() => {
     if (role) {
-      setRoleName(role.name || "");
-      setRoleDesc(role.description || "");
+      setName(role.name || "");
+      setDescription(role.description || "");
+      setSelectedPermissions(role.permissions?.map((p: any) => p.permission.id) || []);
 
-      // Map permissions
-      const permIds = role.permissions?.map((p: any) => p.permission.name) || [];
-      setSelectedHubPerms(permIds);
-
-      // Map app configs
-      const newActiveApps = { Odoo: false, PMS: false, POS: false };
-      const newConfigs = { ...appConfigs };
+      const existingMappings: Record<string, AppMapping> = {};
+      const activeAppIds: string[] = [];
 
       role.mappings?.forEach((m: any) => {
-        const appName = m.app.name === "Odoo ERP" ? "Odoo" : m.app.name;
-        if (appName in newActiveApps) {
-          (newActiveApps as any)[appName] = true;
-          newConfigs[appName] = {
-            role: m.appRoleName || "",
-            groups: m.appGroups || [],
-            company: m.appCompanies?.[0] || "",
-            properties: m.appProperties || [],
-            outlets: m.appOutlets || [],
-            department: m.appDepartments?.[0] || "",
-          };
-        }
+        existingMappings[m.appId] = {
+          appId: m.appId,
+          appRoleName: m.appRoleName || "",
+          appGroups: m.appGroups || [],
+          appProperties: m.appProperties || [],
+          appOutlets: m.appOutlets || [],
+          appCompanies: m.appCompanies || [],
+          appDepartments: m.appDepartments || [],
+          isEnabled: true,
+        };
+        activeAppIds.push(m.appId);
       });
 
-      setActiveApps(newActiveApps);
-      setAppConfigs(newConfigs);
+      setMappings(existingMappings);
+      setExpandedApps(activeAppIds);
     }
   }, [role]);
 
-  const toggleApp = (app: string) => {
-    setActiveApps((prev) => ({ ...prev, [app]: !prev[app] }));
-  };
-
-  const toggleHubPerm = (permId: string) => {
-    setSelectedHubPerms((prev) =>
-      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId],
-    );
-  };
-
-  const toggleOdooGroup = (group: string) => {
-    setAppConfigs((prev) => {
-      const currentGroups = prev.Odoo.groups || [];
-      const newGroups = currentGroups.includes(group)
-        ? currentGroups.filter((g: string) => g !== group)
-        : [...currentGroups, group];
+  // 6. Handlers
+  const toggleApp = (appId: string) => {
+    setMappings((prev) => {
+      const exists = prev[appId];
+      if (exists?.isEnabled) {
+        return { ...prev, [appId]: { ...exists, isEnabled: false } };
+      }
       return {
         ...prev,
-        Odoo: { ...prev.Odoo, groups: newGroups },
+        [appId]: exists
+          ? { ...exists, isEnabled: true }
+          : {
+              appId,
+              appRoleName: "",
+              appGroups: [],
+              appProperties: [],
+              appOutlets: [],
+              appCompanies: [],
+              appDepartments: [],
+              isEnabled: true,
+            },
       };
     });
-  };
 
-  const updateConfig = (app: string, field: string, value: any) => {
-    setAppConfigs((prev) => {
-      const newConfig = { ...prev[app], [field]: value };
-
-      // Nếu đổi company, reset properties và outlets
-      if (field === "company") {
-        newConfig.properties = [];
-        newConfig.outlets = [];
-      }
-      // Nếu đổi properties, reset outlets
-      if (field === "properties") {
-        newConfig.outlets = [];
-      }
-
-      return {
-        ...prev,
-        [app]: newConfig,
-      };
-    });
-  };
-
-  const handleSubmit = async () => {
-    const payload = {
-      name: roleName,
-      description: roleDesc,
-      permissionIds: selectedHubPerms,
-      mappings: Object.entries(activeApps)
-        .filter(([_, isActive]) => isActive)
-        .map(([app]) => {
-          const appIdMap: Record<string, string> = { Odoo: "1", PMS: "2", POS: "3" };
-          const config = appConfigs[app];
-          return {
-            appId: appIdMap[app],
-            appRoleName: app === "Odoo" ? "" : config.role,
-            appGroups: app === "Odoo" ? config.groups : [],
-            appProperties: config.properties || [],
-            appOutlets: config.outlets || [],
-            appDepartments: app === "Odoo" && config.department ? [config.department] : [],
-            appCompanies: [config.company].filter(Boolean),
-          };
-        }),
-    };
-
-    try {
-      await saveRole.mutateAsync(payload);
-      alert(isEdit ? "Đã cập nhật vai trò!" : "Đã tạo vai trò mới!");
-      onClose();
-    } catch (error) {
-      console.error("❌ Submit failed:", error);
+    if (!expandedApps.includes(appId)) {
+      setExpandedApps((prev) => [...prev, appId]);
     }
   };
 
+  const updateMappingField = (appId: string, field: keyof AppMapping, value: any) => {
+    setMappings((prev) => ({
+      ...prev,
+      [appId]: { ...prev[appId], [field]: value },
+    }));
+  };
+
+  const togglePermission = (pId: string) => {
+    setSelectedPermissions((prev) =>
+      prev.includes(pId) ? prev.filter((id) => id !== pId) : [...prev, pId],
+    );
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const activeMappings = Object.values(mappings)
+      .filter((m) => m.isEnabled)
+      .map(({ isEnabled, ...rest }) => rest);
+
+    const payload = {
+      name,
+      description,
+      permissionIds: selectedPermissions,
+      mappings: activeMappings,
+    };
+
+    try {
+      if (isEdit) {
+        await updateRole.mutateAsync({ id: id!, data: payload });
+        toast.success("Vai trò đã được cập nhật");
+      } else {
+        await createRole.mutateAsync(payload);
+        toast.success("Vai trò mới đã được tạo");
+      }
+      onClose();
+    } catch (error) {
+      // API error handled by toast in apiClient
+    }
+  };
+
+  if ((isEdit && roleLoading) || appsLoading || permsLoading || orgsLoading || propsLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground animate-pulse font-medium">
+          Đang tải cấu hình vai trò...
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <div className="space-y-6">
-        <FormField label="Tên vai trò">
-          <input
-            className={inputClasses}
-            placeholder="vd: Giám đốc vùng, Kế toán..."
-            value={roleName}
-            onChange={(e) => setRoleName(e.target.value)}
-          />
-        </FormField>
+    <form
+      onSubmit={handleSubmit}
+      className="absolute inset-0 flex flex-col bg-background animate-in fade-in duration-500 overflow-hidden"
+    >
+      {/* Scrollable Content Area */}
+      <div className="flex-1 overflow-y-auto px-6 py-8 space-y-8 scrollbar-thin scrollbar-thumb-border hover:scrollbar-thumb-primary/20">
+        {/* Section 1: Basic Information */}
+        <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+              <Settings2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">Basic Information</h3>
+              <p className="text-xs text-muted-foreground">
+                Define the role identity and its purpose
+              </p>
+            </div>
+          </div>
 
-        <FormField label="Mô tả nhiệm vụ">
-          <textarea
-            className={cn(inputClasses, "h-20 py-3 resize-none")}
-            placeholder="Mô tả ngắn gọn về phạm vi công việc..."
-            value={roleDesc}
-            onChange={(e) => setRoleDesc(e.target.value)}
-          />
-        </FormField>
-
-        <div className="pt-4 border-t border-border">
-          <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
-            <ShieldAlert className="h-3.5 w-3.5" /> Quyền hạn Hub (Internal Permissions)
-          </h3>
-          <FormField label="Danh sách quyền hạn">
-            <MultiSelect
-              value={selectedHubPerms}
-              options={HUB_PERMISSIONS.map((p) => ({ value: p.id, label: p.label }))}
-              onChange={setSelectedHubPerms}
-              placeholder="Chọn các quyền hạn trên Hub..."
-            />
-          </FormField>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField label="Role Name" required>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={cn(inputClasses, "bg-muted/30")}
+                placeholder="e.g. Regional Manager"
+                required
+              />
+            </FormField>
+            <FormField label="Description">
+              <input
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className={cn(inputClasses, "bg-muted/30")}
+                placeholder="Brief description of responsibilities..."
+              />
+            </FormField>
+          </div>
         </div>
 
-        <div className="pt-4 border-t border-border">
-          <h3 className="text-[11px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 mb-4">
-            <ShieldAlert className="h-3.5 w-3.5" /> Mapping Quyền hạn hệ thống (Role-App Matrix)
-          </h3>
+        {/* Section 2: Hub Permissions */}
+        <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">Workspace Permissions</h3>
+              <p className="text-xs text-muted-foreground">
+                Direct hub-level permissions for this role
+              </p>
+            </div>
+          </div>
 
-          <div className="space-y-4">
-            {apps.map((app) => {
-              const isActive = activeApps[app];
-              return (
-                <div
-                  key={app}
-                  className={cn(
-                    "p-4 rounded-2xl border transition-all duration-300",
-                    isActive ? "border-primary/30 bg-primary/5" : "border-border bg-card/30",
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        onClick={() => toggleApp(app)}
+          <div className="space-y-6">
+            {Object.entries(groupedPermissions).map(([groupName, perms]) => (
+              <div key={groupName} className="space-y-3">
+                <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest ml-1">
+                  {groupName.replace("hub:", "")}
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {perms.map((p) => {
+                    const isSelected = selectedPermissions.includes(p.id);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => togglePermission(p.id)}
                         className={cn(
-                          "w-10 h-5 rounded-full relative transition-colors cursor-pointer",
-                          isActive ? "bg-primary" : "bg-muted",
+                          "flex items-center gap-3 p-3 rounded-xl border transition-all text-left group",
+                          isSelected
+                            ? "border-emerald-500/30 bg-emerald-500/5 text-emerald-700"
+                            : "border-border/40 bg-muted/10 text-muted-foreground hover:bg-muted/20 hover:border-border/60",
                         )}
                       >
                         <div
                           className={cn(
-                            "absolute top-1 w-3 h-3 rounded-full bg-white transition-all shadow-sm",
-                            isActive ? "left-6" : "left-1",
+                            "h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-all",
+                            isSelected
+                              ? "bg-emerald-500 border-emerald-500"
+                              : "border-border/60 bg-white",
                           )}
-                        />
-                      </div>
-                      <span
+                        >
+                          {isSelected && <Check className="h-2.5 w-2.5 text-white" />}
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="text-xs font-bold truncate">{p.name.split(":").pop()}</p>
+                          <p className="text-[10px] opacity-70 truncate">
+                            {p.description || p.name}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Section 3: Application Mappings */}
+        <div className="bg-card rounded-2xl border border-border/50 p-6 shadow-sm space-y-6">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-600">
+              <LayoutGrid className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-foreground">Application Access</h3>
+              <p className="text-xs text-muted-foreground">
+                Enable specific apps and configure their attributes
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {apps?.map((app, index) => {
+              const isEnabled = mappings[app.id]?.isEnabled;
+              const isExpanded = expandedApps.includes(app.id);
+              const mapping = mappings[app.id] || {
+                appId: app.id,
+                appRoleName: "",
+                appGroups: [],
+                appProperties: [],
+                appOutlets: [],
+                appCompanies: [],
+                appDepartments: [],
+                isEnabled: false,
+              };
+
+              const isOdoo = app.type === "odoo";
+              const isPosPms = app.type === "pos" || app.type === "pms";
+
+              return (
+                <div
+                  key={app.id}
+                  className={cn(
+                    "rounded-2xl border transition-all duration-300",
+                    isEnabled
+                      ? "border-primary/20 bg-primary/[0.02]"
+                      : "border-border/40 bg-muted/10",
+                    isExpanded ? "relative shadow-xl ring-2 ring-primary/20 bg-card" : "relative",
+                  )}
+                >
+                  <div className="p-4 flex items-center gap-4">
+                    <div
+                      className={cn(
+                        "h-10 w-10 rounded-xl flex items-center justify-center transition-all",
+                        isEnabled ? "bg-primary text-white" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      <Globe className="h-5 w-5" />
+                    </div>
+
+                    <div className="flex-1">
+                      <h4 className="text-sm font-bold text-foreground">{app.name}</h4>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                        {app.type}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <button
+                        type="button"
+                        onClick={() => toggleApp(app.id)}
                         className={cn(
-                          "text-sm font-bold transition-colors",
-                          isActive ? "text-foreground" : "text-muted-foreground",
+                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                          isEnabled ? "bg-primary" : "bg-muted",
                         )}
                       >
-                        {app}
-                      </span>
+                        <span
+                          className={cn(
+                            "pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out",
+                            isEnabled ? "translate-x-5" : "translate-x-0",
+                          )}
+                        />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedApps((prev) =>
+                            prev.includes(app.id)
+                              ? prev.filter((id) => id !== app.id)
+                              : [...prev, app.id],
+                          )
+                        }
+                        className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground"
+                      >
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
 
-                  {isActive && (
-                    <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                      {app === "Odoo" ? (
-                        <>
-                          <div className="grid grid-cols-1 gap-4">
-                            <FormField label="Odoo Groups" className="!mb-0">
-                              <MultiSelect
-                                value={appConfigs.Odoo.groups || []}
-                                options={MOCK_GROUPS}
-                                onChange={(val) =>
-                                  setAppConfigs((prev) => ({
-                                    ...prev,
-                                    Odoo: { ...prev.Odoo, groups: val },
-                                  }))
-                                }
-                                placeholder="Chọn các nhóm quyền..."
-                              />
-                            </FormField>
-                            <FormField label="Company" className="!mb-0">
-                              <Select
-                                className="h-10 text-xs"
-                                value={appConfigs.Odoo.company}
-                                options={MOCK_COMPANIES}
-                                onChange={(val) => updateConfig("Odoo", "company", val)}
-                                placeholder="Chọn công ty..."
-                              />
-                            </FormField>
-                            <FormField label="Department" className="!mb-0">
-                              <Select
-                                className="h-10 text-xs"
-                                value={appConfigs.Odoo.department}
-                                options={MOCK_DEPARTMENTS}
-                                onChange={(val) =>
-                                  setAppConfigs((prev) => ({
-                                    ...prev,
-                                    Odoo: { ...prev.Odoo, department: val },
-                                  }))
-                                }
-                                placeholder="Chọn phòng ban..."
-                              />
-                            </FormField>
-                          </div>
-                        </>
+                  {isExpanded && isEnabled && (
+                    <div className="p-6 border-t border-border/30 space-y-6 bg-card animate-in slide-in-from-top-2">
+                      {isOdoo ? (
+                        <div className="grid grid-cols-1 gap-6">
+                          <FormField label="Groups" required>
+                            <MultiSelect
+                              value={mapping.appGroups}
+                              onChange={(vals) => updateMappingField(app.id, "appGroups", vals)}
+                              options={MOCK_GROUPS}
+                              placeholder="Select groups..."
+                            />
+                          </FormField>
+                          <FormField label="Company (Optional)">
+                            <Select
+                              value={mapping.appCompanies?.[0] || ""}
+                              onChange={(val) =>
+                                updateMappingField(app.id, "appCompanies", val ? [val] : [])
+                              }
+                              options={MOCK_ODOO_COMPANIES}
+                              placeholder="Select company..."
+                            />
+                          </FormField>
+                          <FormField label="Department (Optional)">
+                            <Select
+                              value={mapping.appDepartments?.[0] || ""}
+                              onChange={(val) =>
+                                updateMappingField(app.id, "appDepartments", val ? [val] : [])
+                              }
+                              options={MOCK_DEPARTMENTS}
+                              placeholder="Select department..."
+                            />
+                          </FormField>
+                          <FormField label="Property (Optional)">
+                            <Select
+                              value={mapping.appProperties?.[0] || ""}
+                              onChange={(val) =>
+                                updateMappingField(app.id, "appProperties", val ? [val] : [])
+                              }
+                              options={propertyOptions}
+                              placeholder="Select property..."
+                            />
+                          </FormField>
+                        </div>
+                      ) : isPosPms ? (
+                        <div className="grid grid-cols-1 gap-6">
+                          <FormField label="Select Role" required>
+                            <Select
+                              value={mapping.appRoleName}
+                              onChange={(val) => updateMappingField(app.id, "appRoleName", val)}
+                              options={APP_ROLES}
+                              placeholder="Select role..."
+                            />
+                          </FormField>
+                          <FormField label="Select Company" required>
+                            <Select
+                              value={mapping.appCompanies?.[0] || ""}
+                              onChange={(val) => {
+                                updateMappingField(app.id, "appCompanies", val ? [val] : []);
+                                updateMappingField(app.id, "appProperties", []);
+                                updateMappingField(app.id, "appOutlets", []);
+                              }}
+                              options={organizationOptions}
+                              placeholder="Select company..."
+                            />
+                          </FormField>
+
+                          {mapping.appCompanies?.[0] && (
+                            <>
+                              <FormField label="Select Properties">
+                                <MultiSelect
+                                  value={mapping.appProperties}
+                                  onChange={(vals) => {
+                                    updateMappingField(app.id, "appProperties", vals);
+                                    const validOutlets = mapping.appOutlets.filter((oid) => {
+                                      const outlet = dynamicOutlets.find((o) => o.value === oid);
+                                      return outlet && vals.includes(outlet.propertyId);
+                                    });
+                                    updateMappingField(app.id, "appOutlets", validOutlets);
+                                  }}
+                                  options={propertyOptions.filter(
+                                    (p: any) => p.organizationId === mapping.appCompanies[0],
+                                  )}
+                                  placeholder="Select properties..."
+                                />
+                              </FormField>
+
+                              {mapping.appProperties?.length > 0 && (
+                                <FormField label="Select Outlets">
+                                  <MultiSelect
+                                    value={mapping.appOutlets}
+                                    onChange={(vals) =>
+                                      updateMappingField(app.id, "appOutlets", vals)
+                                    }
+                                    options={dynamicOutlets.filter((o) =>
+                                      mapping.appProperties.includes(o.propertyId),
+                                    )}
+                                    placeholder="Select outlets..."
+                                  />
+                                </FormField>
+                              )}
+                            </>
+                          )}
+                        </div>
                       ) : (
-                        <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <div className="grid grid-cols-2 gap-3">
-                            <FormField label={`${app} Role`} className="!mb-0">
-                              <Select
-                                className="h-10 text-xs"
-                                value={appConfigs[app].role}
-                                options={MOCK_APP_ROLES}
-                                onChange={(val) => updateConfig(app, "role", val)}
-                                placeholder={`Chọn vai trò ${app}...`}
-                              />
-                            </FormField>
-                            <FormField label="Company" className="!mb-0">
-                              <Select
-                                className="h-10 text-xs"
-                                value={appConfigs[app].company}
-                                options={MOCK_COMPANIES_PMS}
-                                onChange={(val) => updateConfig(app, "company", val)}
-                                placeholder="Chọn công ty..."
-                              />
-                            </FormField>
-                          </div>
-
-                          {appConfigs[app].company && (
-                            <FormField label="Properties (Cơ sở)" className="!mb-0">
-                              <MultiSelect
-                                value={appConfigs[app].properties || []}
-                                options={MOCK_PROPERTIES[appConfigs[app].company] || []}
-                                onChange={(val) => updateConfig(app, "properties", val)}
-                                placeholder="Chọn các khách sạn/cơ sở..."
-                              />
-                            </FormField>
-                          )}
-
-                          {appConfigs[app].properties?.length > 0 && (
-                            <FormField label="Outlets (Điểm bán)" className="!mb-0">
-                              <MultiSelect
-                                value={appConfigs[app].outlets || []}
-                                options={appConfigs[app].properties.flatMap(
-                                  (pId: string) => MOCK_OUTLETS[pId] || [],
-                                )}
-                                onChange={(val) => updateConfig(app, "outlets", val)}
-                                placeholder="Chọn các điểm bán/nhà hàng..."
-                              />
-                            </FormField>
-                          )}
+                        <div className="grid grid-cols-1 gap-6">
+                          <FormField label="App Role Name" required>
+                            <input
+                              value={mapping.appRoleName || ""}
+                              onChange={(e) =>
+                                updateMappingField(app.id, "appRoleName", e.target.value)
+                              }
+                              className={inputClasses}
+                              placeholder="e.g. manager, admin, user"
+                            />
+                          </FormField>
                         </div>
                       )}
                     </div>
@@ -457,28 +576,28 @@ export function RoleForm({ id, onClose }: RoleFormProps) {
         </div>
       </div>
 
-      <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-3">
-        <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-        <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong>Lưu ý:</strong> Cấu hình này định nghĩa quyền hạn mặc định khi một nhân viên được
-          gán vai trò này. Hệ thống sẽ tự động map các ID này tới ứng dụng đích.
-        </p>
-      </div>
-
-      <div className="pt-8 flex gap-3 sticky bottom-0 bg-background/80 backdrop-blur-sm -mx-8 px-8 pb-8">
+      {/* Pinned Action Footer */}
+      <div className="bg-background border-t border-border/60 p-6 shadow-[0_-10px_30px_rgba(0,0,0,0.08)] flex items-center gap-4 z-50">
         <button
+          type="button"
           onClick={onClose}
-          className="flex-1 h-12 rounded-xl bg-muted text-foreground font-bold hover:bg-muted/80 transition-colors"
+          className="flex-1 h-12 rounded-2xl border border-border font-bold text-sm hover:bg-muted transition-all active:scale-95 bg-white"
         >
-          Hủy
+          Cancel
         </button>
         <button
-          onClick={handleSubmit}
-          className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-lg shadow-primary/20 transition-all active:scale-95"
+          type="submit"
+          disabled={updateRole.isPending || createRole.isPending}
+          className="flex-[2] h-12 rounded-2xl bg-primary text-primary-foreground font-bold text-sm shadow-xl shadow-primary/20 hover:opacity-90 transition-all active:scale-95 flex items-center justify-center gap-2"
         >
-          {isEdit ? "Cập nhật mapping" : "Tạo vai trò & Mapping"}
+          {updateRole.isPending || createRole.isPending ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Save className="h-5 w-5" />
+          )}
+          {isEdit ? "Update Configuration" : "Create Role"}
         </button>
       </div>
-    </div>
+    </form>
   );
 }

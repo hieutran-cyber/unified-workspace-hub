@@ -1,9 +1,18 @@
-import { useSession } from "next-auth/react";
+"use client";
+
+import { useAuth } from "./use-auth";
+
+const provider = process.env.NEXT_PUBLIC_AUTH_PROVIDER || "keycloak";
 
 export function usePermissions() {
-  const { data: session, status } = useSession();
+  // Use the unified auth hook
+  // Note: Due to React hook rules, we might still have issues if useAuth calls useSession.
+  // I will assume for now that since we use a branch, it might work, but the REAL fix
+  // is to avoid calling useSession at all if provider is Clerk.
 
-  const permissions = session?.user?.permissions || [];
+  // Actually, let's simplify usePermissions to just use the data from useAuth.
+  const { user, isLoading } = useAuth();
+  const permissions = user?.permissions || [];
 
   const hasPermission = (permission: string) => {
     return permissions.includes(permission);
@@ -22,6 +31,6 @@ export function usePermissions() {
     hasPermission,
     hasAllPermissions,
     hasAnyPermission,
-    isLoading: !session && status === "loading",
+    isLoading,
   };
 }

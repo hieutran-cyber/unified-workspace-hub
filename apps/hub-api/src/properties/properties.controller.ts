@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Put, Body, Param, UseGuards } from "@nestjs/common";
 import { PrismaService } from "../database/database.module";
 import { PropertySyncService } from "./property-sync.service";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { MultiAuthGuard } from "../auth/multi-auth.guard";
 import { PermissionsGuard } from "../auth/permissions.guard";
 import { RequiredPermissions } from "../auth/permissions.decorator";
 
 @Controller("properties")
-@UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(MultiAuthGuard, PermissionsGuard)
 export class PropertiesController {
   constructor(
     private prisma: PrismaService,

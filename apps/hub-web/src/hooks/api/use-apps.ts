@@ -1,20 +1,21 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import { useSession } from "next-auth/react";
+import { useAuth } from "../use-auth";
 
-export interface Application {
-  id: string;
-  name: string;
-  description: string;
-  color?: string;
-  status?: string;
+export function useApps() {
+  const { token, isAuthenticated, profile, orgId } = useAuth();
+  return useQuery<any[]>({
+    queryKey: ["apps", token, profile?.database?.id, orgId],
+    queryFn: () => apiClient("/applications", { token }),
+    enabled: isAuthenticated && !!token,
+  });
 }
 
-export function useApplications() {
-  const { data: session } = useSession();
-  return useQuery<Application[]>({
-    queryKey: ["applications", session?.accessToken],
-    queryFn: () => apiClient("/applications"),
-    enabled: !!session?.accessToken,
+export function useApp(id?: string) {
+  const { token, isAuthenticated } = useAuth();
+  return useQuery<any>({
+    queryKey: ["apps", id, token],
+    queryFn: () => apiClient(`/applications/${id}`, { token }),
+    enabled: !!id && isAuthenticated && !!token,
   });
 }

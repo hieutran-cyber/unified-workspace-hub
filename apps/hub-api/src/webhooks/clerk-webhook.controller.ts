@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Post,
-  Req,
-  Headers,
-  BadRequestException,
-  Logger,
-} from "@nestjs/common";
+import { Controller, Post, Req, Headers, BadRequestException, Logger } from "@nestjs/common";
 import type { Request } from "express";
 import { Webhook } from "svix";
 import { PrismaService } from "../database/database.module";
@@ -49,12 +42,37 @@ export class ClerkWebhookController {
       case "user.updated": {
         const email = data.email_addresses?.[0]?.email_address;
         if (!email) return { ok: true };
+
+        // DOMAIN RESTRICTION
+        const allowedDomains = (
+          process.env.ALLOWED_EMAIL_DOMAINS || "kinex.com,inbox4us.xyz"
+        ).split(",");
+        const emailDomain = email.split("@")[1];
+
+        if (!allowedDomains.includes(emailDomain)) {
+          this.logger.warn(`Blocked sign-up attempt from unauthorized domain: ${email}`);
+          return { ok: true, status: "blocked" };
+        }
+
         const name = [data.first_name, data.last_name].filter(Boolean).join(" ");
-        await this.prisma.user.upsert({
+
+        // ONLY UPDATE EXISTING USERS (Whitelist Policy)
+        const existingUser = await this.prisma.user.findUnique({
           where: { email },
-          update: { clerkUserId: data.id, name: name || undefined },
-          create: { email, clerkUserId: data.id, name: name || null, status: "active" },
         });
+
+        if (existingUser) {
+          await this.prisma.user.update({
+            where: { email },
+            data: {
+              clerkUserId: data.id,
+              name: existingUser.name || name || undefined,
+            },
+          });
+          this.logger.log(`Linked Clerk ID ${data.id} to existing user ${email}`);
+        } else {
+          this.logger.warn(`Ignored Clerk user creation for ${email} (Not in whitelist)`);
+        }
         break;
       }
       case "user.deleted": {

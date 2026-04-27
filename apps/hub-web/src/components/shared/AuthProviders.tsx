@@ -1,14 +1,24 @@
 "use client";
 
-import { Providers as KeycloakProviders } from "./Providers";
+import { SessionProvider } from "next-auth/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 const provider = process.env.NEXT_PUBLIC_AUTH_PROVIDER || "keycloak";
 
 export function AuthProviders({ children }: { children: React.ReactNode }) {
+  const [queryClient] = useState(() => new QueryClient());
+
+  let content = (
+    <QueryClientProvider client={queryClient}>
+      <SessionProvider>{children}</SessionProvider>
+    </QueryClientProvider>
+  );
+
   if (provider === "clerk") {
-    // Lazy import để dự án vẫn build được khi chưa cài @clerk/nextjs
     const { ClerkProviders } = require("./ClerkProviders");
-    return <ClerkProviders>{children}</ClerkProviders>;
+    return <ClerkProviders>{content}</ClerkProviders>;
   }
-  return <KeycloakProviders>{children}</KeycloakProviders>;
+
+  return content;
 }

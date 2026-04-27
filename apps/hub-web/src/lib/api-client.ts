@@ -2,23 +2,26 @@ import { getSession, signOut } from "next-auth/react";
 import { toast } from "sonner";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const provider = process.env.NEXT_PUBLIC_AUTH_PROVIDER || "keycloak";
 
 interface RequestOptions extends RequestInit {
   params?: Record<string, string>;
+  token?: string | null;
 }
 
 export async function apiClient(endpoint: string, options: RequestOptions = {}) {
-  const session = await getSession();
-  const token = session?.accessToken;
+  let token = options.token;
 
-  if (session?.error === "RefreshAccessTokenError") {
-    console.error("🔄 Refresh token expired, signing out...");
-    signOut({ callbackUrl: "/" });
-    return;
-  }
+  // Nếu không có token truyền vào, thử lấy tự động (chỉ cho Keycloak)
+  if (!token && provider === "keycloak") {
+    const session = await getSession();
+    token = session?.accessToken;
 
-  if (!token) {
-    console.warn(`⚠️ [apiClient] No token found for ${endpoint}`);
+    if (session?.error === "RefreshAccessTokenError") {
+      console.error("🔄 Refresh token expired, signing out...");
+      signOut({ callbackUrl: "/" });
+      return;
+    }
   }
 
   // 1. Construct URL with query params
@@ -40,8 +43,17 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}) 
 
   // 3. Perform request
   try {
+    const fetchOptions = { ...options };
+    if (
+      fetchOptions.body &&
+      typeof fetchOptions.body === "object" &&
+      !(fetchOptions.body instanceof FormData)
+    ) {
+      fetchOptions.body = JSON.stringify(fetchOptions.body) as any;
+    }
+
     const response = await fetch(url.toString(), {
-      ...options,
+      ...fetchOptions,
       headers,
     });
 
@@ -52,7 +64,6 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}) 
 
       if (response.status === 401) {
         console.error("🔑 Session expired or unauthorized");
-        // Optional: signOut() if truly unauthenticated
       } else if (response.status === 403) {
         toast.error("Bạn không có quyền thực hiện hành động này.");
       } else {
@@ -62,7 +73,6 @@ export async function apiClient(endpoint: string, options: RequestOptions = {}) 
       throw new Error(errorMessage);
     }
 
-    // 5. Parse JSON response
     return await response.json();
   } catch (error: any) {
     console.error(`🚀 API Error [${endpoint}]:`, error?.message || error);

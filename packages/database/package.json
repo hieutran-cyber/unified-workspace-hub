@@ -12,6 +12,7 @@
     "db:seed": "bun seed.ts"
   },
   "dependencies": {
+    "@clerk/backend": "^3.3.0",
     "@prisma/client": "^5.20.0"
   },
   "devDependencies": {

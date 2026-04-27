@@ -1,6 +1,5 @@
 "use client";
 
-import { useSession, signOut, signIn } from "next-auth/react";
 import {
   LayoutDashboard,
   Calendar,
@@ -12,32 +11,112 @@ import {
   CircleDollarSign,
   ArrowUpRight,
   Loader2,
+  HelpCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { signOut, signIn } from "next-auth/react";
+import { useAuth } from "../hooks/use-auth";
+import { useClerk, useOrganizationList } from "@clerk/nextjs";
+
+const KINEX_ORG_ID = "org_3CmwDxbcwYqKaKNrz2H86AjxIKq";
+
+// Icon mapping based on application type
+const ICON_MAP: Record<string, any> = {
+  hub: LayoutDashboard,
+  pms: Bed,
+  pos: Users,
+  odoo: CircleDollarSign,
+  analytics: TrendingUp,
+};
 
 export default function Dashboard() {
-  const { data: session, status } = useSession();
+  const { user, token, isAuthenticated, isLoading, provider, allowedApps } = useAuth();
+  const { signOut: clerkSignOut, openSignIn } = useClerk();
+  const { isLoaded: isOrgLoaded, setActive } = useOrganizationList();
   const [stats, setStats] = useState<any>(null);
+  const [isUnauthorized, setIsUnauthorized] = useState(false);
 
+  // Auto-switch to KiNEX Org if in Clerk and not already active
   useEffect(() => {
-    if (status === "unauthenticated") {
-      signIn("keycloak");
+    if (provider === "clerk" && isAuthenticated && isOrgLoaded && setActive && !isUnauthorized) {
+      setActive({ organization: KINEX_ORG_ID }).catch((err) => {
+        console.error("Access denied to organization:", err);
+        setIsUnauthorized(true);
+      });
     }
-  }, [status]);
+  }, [isAuthenticated, isOrgLoaded, provider, setActive, isUnauthorized]);
 
   useEffect(() => {
-    if (session?.accessToken) {
+    if (!isLoading && !isAuthenticated) {
+      if (provider === "clerk") {
+        openSignIn();
+      } else {
+        signIn("keycloak");
+      }
+    }
+  }, [isLoading, isAuthenticated, provider, openSignIn]);
+
+  useEffect(() => {
+    if (token && !isUnauthorized) {
       fetch("http://localhost:3006/dashboard/stats", {
         headers: {
-          Authorization: `Bearer ${session.accessToken}`,
+          Authorization: `Bearer ${token}`,
         },
       })
-        .then((res) => res.json())
-        .then((data) => setStats(data));
+        .then((res) => {
+          if (res.status === 401 || res.status === 403) {
+            setIsUnauthorized(true);
+            return null;
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (data) setStats(data);
+        });
     }
-  }, [session]);
+  }, [token, isUnauthorized]);
 
-  if (status === "loading" || status === "unauthenticated") {
+  const handleLogout = async () => {
+    if (provider === "clerk") {
+      await clerkSignOut();
+      window.location.href = "/";
+    } else {
+      signOut({ callbackUrl: "/" });
+    }
+  };
+
+  if (isUnauthorized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <div className="max-w-md w-full bg-white p-8 rounded-3xl shadow-xl border border-red-100 text-center">
+          <div className="h-20 w-20 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <LogOut className="h-10 w-10" />
+          </div>
+          <h2 className="text-2xl font-black text-slate-900 mb-2">Truy cập bị từ chối</h2>
+          <p className="text-slate-500 mb-8">
+            Tài khoản của bạn không có quyền truy cập vào hệ thống PMS của <strong>KiNEX</strong>.
+            Vui lòng liên hệ quản trị viên hoặc quay lại Hub.
+          </p>
+          <div className="space-y-3">
+            <a
+              href="http://localhost:3000"
+              className="block w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:opacity-90 transition-opacity"
+            >
+              Quay lại Hub
+            </a>
+            <button
+              onClick={handleLogout}
+              className="block w-full py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition-colors"
+            >
+              Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading || !isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-4">
@@ -85,7 +164,7 @@ export default function Dashboard() {
             <ExternalLink className="h-3 w-3" />
           </a>
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 p-3 rounded-xl text-slate-500 text-sm font-medium hover:bg-red-50 hover:text-red-600 transition-colors"
           >
             <LogOut className="h-4 w-4" /> Logout
@@ -108,44 +187,50 @@ export default function Dashboard() {
                   Hệ sinh thái KiNEX
                 </div>
                 <div className="grid grid-cols-2 gap-2">
-                  <a
-                    href="http://localhost:3000"
-                    className="p-4 rounded-2xl bg-slate-50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50 transition-all group/app"
-                  >
-                    <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white mb-3 shadow-lg shadow-indigo-100">
-                      <LayoutDashboard className="h-5 w-5" />
-                    </div>
-                    <div className="font-bold text-slate-900 text-sm">Workspace</div>
-                    <div className="text-[10px] text-slate-500 font-medium">
-                      Trung tâm điều hành
-                    </div>
-                  </a>
+                  {allowedApps?.map((app: any) => {
+                    const Icon = ICON_MAP[app.slug] || ICON_MAP[app.type] || HelpCircle;
+                    const isActive = app.slug === "pms";
 
-                  <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-100 cursor-default">
-                    <div className="h-10 w-10 bg-indigo-600 rounded-xl flex items-center justify-center text-white mb-3 shadow-lg shadow-indigo-100">
-                      <Bed className="h-5 w-5" />
-                    </div>
-                    <div className="font-bold text-slate-900 text-sm">KiNEX PMS</div>
-                    <div className="text-[10px] text-indigo-600 font-black uppercase tracking-tighter">
-                      Đang mở
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-transparent opacity-50 cursor-not-allowed">
-                    <div className="h-10 w-10 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 mb-3">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div className="font-bold text-slate-400 text-sm">KiNEX POS</div>
-                    <div className="text-[10px] text-slate-400 font-medium">Sắp ra mắt</div>
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-transparent opacity-50 cursor-not-allowed">
-                    <div className="h-10 w-10 bg-slate-200 rounded-xl flex items-center justify-center text-slate-400 mb-3">
-                      <CircleDollarSign className="h-5 w-5" />
-                    </div>
-                    <div className="font-bold text-slate-400 text-sm">Odoo ERP</div>
-                    <div className="text-[10px] text-slate-400 font-medium">Sắp ra mắt</div>
-                  </div>
+                    return (
+                      <a
+                        key={app.id}
+                        href={app.access ? app.baseUrl : "#"}
+                        className={`p-4 rounded-2xl border transition-all group/app ${
+                          isActive
+                            ? "bg-indigo-50 border-indigo-100 cursor-default"
+                            : !app.access
+                              ? "bg-slate-50 border-transparent opacity-50 cursor-not-allowed"
+                              : "bg-slate-50 border-transparent hover:border-indigo-100 hover:bg-indigo-50"
+                        }`}
+                      >
+                        <div
+                          className={`h-10 w-10 rounded-xl flex items-center justify-center mb-3 shadow-lg ${
+                            app.access
+                              ? "bg-indigo-600 text-white shadow-indigo-100"
+                              : "bg-slate-200 text-slate-400 shadow-none"
+                          }`}
+                        >
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div
+                          className={`font-bold text-sm ${app.access ? "text-slate-900" : "text-slate-400"}`}
+                        >
+                          {app.name}
+                        </div>
+                        <div className="text-[10px] font-medium">
+                          {isActive ? (
+                            <span className="text-indigo-600 font-black uppercase tracking-tighter">
+                              Đang mở
+                            </span>
+                          ) : !app.access ? (
+                            <span className="text-slate-400">Chưa được cấp quyền</span>
+                          ) : (
+                            <span className="text-slate-500">Truy cập ngay</span>
+                          )}
+                        </div>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -160,18 +245,18 @@ export default function Dashboard() {
 
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
-              <div className="text-sm font-black text-slate-900 leading-none">
-                {session.user?.name}
-              </div>
+              <div className="text-sm font-black text-slate-900 leading-none">{user?.name}</div>
               <div className="text-[10px] font-bold text-emerald-500 uppercase tracking-widest mt-1">
                 Online
               </div>
             </div>
             <div className="h-12 w-12 rounded-2xl bg-slate-100 border-2 border-white shadow-sm flex items-center justify-center text-slate-500 font-black overflow-hidden ring-1 ring-slate-100">
-              {session.user?.image ? (
-                <img src={session.user.image} alt="Avatar" className="h-full w-full object-cover" />
+              {user?.id ? (
+                <div className="h-full w-full flex items-center justify-center bg-indigo-100 text-indigo-600">
+                  {user.name?.charAt(0)}
+                </div>
               ) : (
-                session.user?.name?.charAt(0)
+                "?"
               )}
             </div>
           </div>

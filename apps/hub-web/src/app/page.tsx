@@ -1,20 +1,49 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
+import { useAuth } from "@clerk/nextjs";
 import { ShieldCheck, AlertCircle, RefreshCcw } from "lucide-react";
 import { useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-function LandingPageContent() {
+const provider = process.env.NEXT_PUBLIC_AUTH_PROVIDER || "keycloak";
+
+function ClerkAuthLogic({ onAuth }: { onAuth: (isSignedIn: boolean) => void }) {
+  const { isLoaded, isSignedIn } = useAuth();
+  useEffect(() => {
+    if (isLoaded) onAuth(isSignedIn ?? false);
+  }, [isLoaded, isSignedIn, onAuth]);
+  return null;
+}
+
+function NextAuthLogic({ onAuth }: { onAuth: (status: string) => void }) {
   const { status } = useSession();
+  useEffect(() => {
+    onAuth(status);
+  }, [status, onAuth]);
+  return null;
+}
+
+function LandingPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const error = searchParams.get("error");
   const navigationTriggered = useRef(false);
 
-  useEffect(() => {
+  const handleClerkAuth = (isSignedIn: boolean) => {
     if (navigationTriggered.current) return;
+    if (isSignedIn) {
+      navigationTriggered.current = true;
+      localStorage.removeItem("current_org_id");
+      router.push("/select-org");
+    } else {
+      navigationTriggered.current = true;
+      router.push("/sign-in");
+    }
+  };
 
+  const handleNextAuth = (status: string) => {
+    if (navigationTriggered.current) return;
     if (status === "authenticated") {
       navigationTriggered.current = true;
       localStorage.removeItem("current_org_id");
@@ -26,10 +55,25 @@ function LandingPageContent() {
       }, 1000);
       return () => clearTimeout(timeout);
     }
-  }, [status, router, error]);
+  };
+
+  const handleRetry = () => {
+    if (provider === "clerk") {
+      router.push("/sign-in");
+    } else {
+      signIn("keycloak");
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background relative overflow-hidden font-sans">
+      {/* Auth Logic Injection */}
+      {provider === "clerk" ? (
+        <ClerkAuthLogic onAuth={handleClerkAuth} />
+      ) : (
+        <NextAuthLogic onAuth={handleNextAuth} />
+      )}
+
       <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
       <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-[oklch(0.4_0.15_265/0.1)] blur-[120px] rounded-full animate-pulse [animation-delay:1s]" />
 
@@ -56,12 +100,12 @@ function LandingPageContent() {
                 <div className="flex items-center gap-2 px-4 py-3 bg-destructive/10 rounded-2xl border border-destructive/20 max-w-sm">
                   <AlertCircle className="h-5 w-5 text-destructive shrink-0" />
                   <p className="text-xs font-bold text-destructive text-left leading-relaxed">
-                    Authentication system connection error. Please check your Keycloak configuration or try
-                    again later.
+                    Authentication system connection error. Please check your{" "}
+                    {provider === "clerk" ? "Clerk" : "Keycloak"} configuration or try again later.
                   </p>
                 </div>
                 <button
-                  onClick={() => signIn("keycloak")}
+                  onClick={handleRetry}
                   className="mx-auto flex items-center gap-2 px-6 py-3 bg-foreground text-background rounded-xl font-bold text-sm hover:scale-105 active:scale-95 transition-all shadow-xl"
                 >
                   <RefreshCcw className="h-4 w-4" /> Try Again
@@ -71,7 +115,7 @@ function LandingPageContent() {
               <div className="flex items-center gap-2 px-4 py-2 bg-muted/50 rounded-full border border-border/50">
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                  Connecting to authentication system...
+                  Connecting to {provider === "clerk" ? "Clerk" : "Keycloak"} system...
                 </p>
               </div>
             )}
@@ -96,7 +140,8 @@ function LandingPageContent() {
         <p className="text-[11px] text-muted-foreground font-medium opacity-50 uppercase tracking-widest leading-loose">
           © 2026 KiNEX Ecosystem • Secure Gateway
           <br />
-          Powered by Keycloak Distributed Identity
+          Powered by{" "}
+          {provider === "clerk" ? "Clerk Cloud Identity" : "Keycloak Distributed Identity"}
         </p>
       </footer>
     </div>

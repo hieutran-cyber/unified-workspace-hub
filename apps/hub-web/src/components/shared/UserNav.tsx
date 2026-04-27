@@ -1,35 +1,32 @@
 "use client";
 
-import { signIn, signOut, useSession } from "next-auth/react";
-import { LogIn, LogOut, User, Settings } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { signOut as nextAuthSignOut } from "next-auth/react";
+import { useClerk } from "@clerk/nextjs";
+import { LogOut, User, Settings } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function UserNav() {
-  const { data: session, status } = useSession();
+  const { user, isAuthenticated, isLoading, provider } = useAuth();
+  const { signOut: clerkSignOut } = useClerk();
 
   const handleLogout = async () => {
     // Xóa organization khỏi localStorage khi đăng xuất
     localStorage.removeItem("current_org_id");
 
-    // If we have an idToken, perform a federated logout from Keycloak
-    if (session?.idToken) {
-      const issuer =
-        process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER || "http://localhost:8080/realms/KiNEX";
-      const logoutUrl = `${issuer}/protocol/openid-connect/logout?id_token_hint=${session.idToken}&post_logout_redirect_uri=${window.location.origin}`;
-
-      await signOut({ redirect: false });
-      window.location.href = logoutUrl;
+    if (provider === "clerk") {
+      await clerkSignOut();
+      window.location.href = "/";
     } else {
-      // Normal sign out if no token
-      await signOut({ callbackUrl: "/" });
+      // Logic Keycloak hiện tại (bạn có thể giữ nguyên idToken logic nếu cần)
+      await nextAuthSignOut({ callbackUrl: "/" });
     }
   };
 
-  if (status === "loading") {
+  if (isLoading) {
     return <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />;
   }
 
-  if (!session) {
+  if (!isAuthenticated || !user) {
     return (
       <button
         onClick={handleLogout}
@@ -44,7 +41,7 @@ export function UserNav() {
   return (
     <div className="flex items-center gap-3 pl-3 border-l border-border/50 ml-3">
       <div className="text-right hidden sm:block">
-        <div className="text-sm font-bold text-foreground leading-none">{session.user?.name}</div>
+        <div className="text-sm font-bold text-foreground leading-none">{user.name}</div>
         <div className="text-[10px] text-muted-foreground mt-1 uppercase tracking-widest font-black">
           Member
         </div>
@@ -52,7 +49,7 @@ export function UserNav() {
 
       <div className="relative group">
         <button className="h-10 w-10 rounded-full bg-primary-soft text-accent-foreground flex items-center justify-center font-bold text-xs ring-2 ring-background hover:ring-primary/20 transition-all">
-          {session.user?.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
+          {user.name?.charAt(0).toUpperCase() || <User className="h-4 w-4" />}
         </button>
 
         {/* Simple Popover */}

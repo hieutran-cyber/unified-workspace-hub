@@ -6,14 +6,9 @@ export default function middleware(req: NextRequest) {
   if (provider !== "clerk") return NextResponse.next();
   // Lazy dùng clerkMiddleware
   const { clerkMiddleware, createRouteMatcher } = require("@clerk/nextjs/server");
-  const isPublic = createRouteMatcher([
-    "/",
-    "/sign-in(.*)",
-    "/sign-up(.*)",
-    "/api/webhooks(.*)",
-  ]);
-  return clerkMiddleware((auth: any, r: NextRequest) => {
-    if (!isPublic(r)) auth().protect();
+  const isPublic = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/api/webhooks(.*)"]);
+  return clerkMiddleware(async (auth: any, r: NextRequest) => {
+    if (!isPublic(r)) await auth.protect();
   })(req, { waitUntil: () => {} } as any);
 }
 

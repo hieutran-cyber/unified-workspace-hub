@@ -1,0 +1,210 @@
+Starting synchronization to Clerk...
+Found 2 organizations to sync.
+Creating creator user admin@kinex.com in Clerk...
+Failed to sync organization KiNEX: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "9fd903006a4c105683ec2d7b81e7b508",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating creator user admin@kinex.com in Clerk...
+Failed to sync organization Malaysia KiNEX: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "a0855535635138bbf95b722f74861594",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user admin@kinex.com in Clerk...
+Failed to sync user admin@kinex.com: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "d14fc15a2b347c76f95b722f7486188d",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user cuong.lv@kinex.vn in Clerk...
+Failed to sync user cuong.lv@kinex.vn: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "7c3f3ab6adf2024f67c77d54e6af6a82",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user binh.tt@kinex.vn in Clerk...
+Failed to sync user binh.tt@kinex.vn: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "cfe3fdb5c34a17a4105575bdb05a3a67",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user danh.pn@kinex.vn in Clerk...
+Failed to sync user danh.pn@kinex.vn: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "d675e3e633902cb5b8f0e31789084875",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user dung.ha@kinex.vn in Clerk...
+Failed to sync user dung.ha@kinex.vn: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "73c1773cbcd6beb0f3fd31903e8dc158",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user accountant@kinex.com in Clerk...
+Failed to sync user accountant@kinex.com: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "88735521192256c260c030024dc17c8c",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Creating user an.nv@kinex.vn in Clerk...
+Failed to sync user an.nv@kinex.vn: 4618 | }
+4619 | function withLegacyRequestReturn(cb) {
+4620 |   return async (...args) => {
+4621 |     const { data, errors, totalCount, status, statusText, clerkTraceId, retryAfter } = await cb(...args);
+4622 |     if (errors) {
+4623 |       const error = new ClerkAPIResponseError(statusText || "", {
+                           ^
+error: Unprocessable Entity
+      cause: undefined,
+ clerkError: true,
+ longMessage: undefined,
+    docsUrl: undefined,
+     status: 422,
+ clerkTraceId: "21111159954bbded0c7afeaa15b5628d",
+ retryAfter: undefined,
+     errors: [
+  [Object ...]
+],
+       code: "api_response_error"
+
+      at <anonymous> (/Users/hieutrangia/gemini/antigravity/scratch/unified-workspace-hub/node_modules/@clerk/backend/dist/chunk-YKVCGBTF.mjs:4623:21)
+
+Synchronization to Clerk completed!

@@ -8,28 +8,54 @@ datasource db {
 }
 
 model User {
-  id         String           @id @default(cuid())
-  email      String           @unique
-  name       String?
-  keycloakId String?          @unique
-  clerkUserId String?         @unique
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
-  avatarUrl  String?
-  category   String?
-  status     String?
-  type       String?
-  mappings   UserAppMapping[]
-  roles      UserRole[]
+  id            String             @id @default(cuid())
+  email         String             @unique
+  name          String?
+  keycloakId    String?            @unique
+  clerkUserId   String?            @unique
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  avatarUrl     String?
+  category      String?            @default("standard")
+  status        String?            @default("active")
+  type          String?            @default("user")
+  defaultOrganizationId String?
+  mappings      UserAppMapping[]
+  roles         UserRole[]
+  organizations UserOrganization[]
+}
+
+model Organization {
+  id         String             @id @default(cuid())
+  name       String
+  slug       String?            @unique
+  clerkOrgId String?            @unique
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  properties Property[]
+  users      UserOrganization[]
+  roles      CentralRole[]
+  applications Application[]
+}
+
+model UserOrganization {
+  userId         String
+  organizationId String
+  user           User         @relation(fields: [userId], references: [id])
+  organization   Organization @relation(fields: [organizationId], references: [id])
+
+  @@id([userId, organizationId])
 }
 
 model CentralRole {
-  id          String           @id @default(cuid())
-  name        String           @unique
-  description String?
-  mappings    RoleAppMapping[]
-  permissions RolePermission[]
-  users       UserRole[]
+  id             String           @id @default(cuid())
+  name           String           @unique
+  description    String?
+  mappings       RoleAppMapping[]
+  permissions    RolePermission[]
+  users          UserRole[]
+  organizationId String?
+  organization   Organization?    @relation(fields: [organizationId], references: [id])
 }
 
 model Permission {
@@ -51,29 +77,34 @@ model RolePermission {
 }
 
 model Application {
-  id           String           @id @default(cuid())
-  name         String           @unique
-  baseUrl      String
-  clientId     String?
-  color        String?
-  description  String?
-  status       String?
-  mappings     RoleAppMapping[]
-  userMappings UserAppMapping[]
+  id             String           @id @default(cuid())
+  name           String
+  type           String           @default("custom") // pms, pos, odoo, analytics, custom
+  baseUrl        String
+  clientId       String?
+  color          String?
+  description    String?
+  status         String?
+  mappings       RoleAppMapping[]
+  userMappings   UserAppMapping[]
+  organizationId String?
+  organization   Organization?    @relation(fields: [organizationId], references: [id])
+
+  @@unique([name, organizationId])
 }
 
 model RoleAppMapping {
-  id            String      @id @default(cuid())
-  centralRoleId String
-  appId         String
-  appRoleName   String?
-  appGroups     String[]
-  appCompanies  String[]
-  appOutlets    String[]
-  appProperties String[]
+  id             String      @id @default(cuid())
+  centralRoleId  String
+  appId          String
+  appRoleName    String?
+  appGroups      String[]
+  appCompanies   String[]
+  appOutlets     String[]
+  appProperties  String[]
   appDepartments String[]
-  app           Application @relation(fields: [appId], references: [id])
-  role          CentralRole @relation(fields: [centralRoleId], references: [id])
+  app            Application @relation(fields: [appId], references: [id])
+  role           CentralRole @relation(fields: [centralRoleId], references: [id])
 
   @@unique([centralRoleId, appId])
 }
@@ -99,16 +130,18 @@ model UserAppMapping {
 }
 
 model Property {
-  id          String   @id @default(cuid())
-  name        String
-  code        String   @unique
-  address     String?
-  status      String   @default("active")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String         @id @default(cuid())
+  name           String
+  code           String         @unique
+  address        String?
+  status         String         @default("active")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organizationId String?
+  organization   Organization?  @relation(fields: [organizationId], references: [id])
 
   // ID Mapping cho các hệ thống khác
-  odooId      String?  @map("odoo_id")
-  pmsId       String?  @map("pms_id")
-  posId       String?  @map("pos_id")
+  odooId String? @map("odoo_id")
+  pmsId  String? @map("pms_id")
+  posId  String? @map("pos_id")
 }

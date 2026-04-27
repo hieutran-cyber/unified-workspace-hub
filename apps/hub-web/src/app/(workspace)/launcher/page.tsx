@@ -13,7 +13,7 @@ import {
   BarChart3,
   LucideIcon,
 } from "lucide-react";
-import { useApplications } from "@/hooks/api/use-apps";
+import { useApps } from "@/hooks/api/use-apps";
 import { cn } from "@/lib/utils";
 
 const stats = [
@@ -41,7 +41,7 @@ const APP_CONFIG: Record<string, { icon: LucideIcon; color: string }> = {
 };
 
 export default function LauncherPage() {
-  const { data: apps, isLoading } = useApplications();
+  const { data: apps, isLoading } = useApps();
 
   if (isLoading) {
     return (

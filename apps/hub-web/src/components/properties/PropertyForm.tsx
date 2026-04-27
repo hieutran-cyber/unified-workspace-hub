@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { FormField, inputClasses } from "@/components/shared/FormField";
 import { toast } from "sonner";
 import { Loader2, Save, Info, Building2, MapPin, Hash } from "lucide-react";
-import { useSaveProperty, useProperty } from "@/hooks/api/use-properties";
+import { useUpdateProperty, useCreateProperty, useProperty } from "@/hooks/api/use-properties";
 
 interface PropertyFormProps {
   id?: string;
@@ -14,12 +14,12 @@ interface PropertyFormProps {
 export function PropertyForm({ id, onClose }: PropertyFormProps) {
   const isEdit = !!id;
   const { data: property, isLoading } = useProperty(id);
-  const saveProperty = useSaveProperty();
+  const updateProperty = useUpdateProperty();
+  const createProperty = useCreateProperty();
 
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [address, setAddress] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (property) {
@@ -34,23 +34,28 @@ export function PropertyForm({ id, onClose }: PropertyFormProps) {
       toast.error("Vui lòng điền đầy đủ Tên và Mã cơ sở");
       return;
     }
-    setIsSaving(true);
+
+    const payload = {
+      name,
+      code,
+      address,
+    };
 
     try {
-      await saveProperty.mutateAsync({
-        id,
-        name,
-        code,
-        address,
-      });
-      toast.success(isEdit ? "Cập nhật thành công" : "Tạo mới thành công");
+      if (isEdit) {
+        await updateProperty.mutateAsync({ id: id!, data: payload });
+        toast.success("Cập nhật thành công");
+      } else {
+        await createProperty.mutateAsync(payload);
+        toast.success("Tạo mới thành công");
+      }
       onClose();
     } catch (error: any) {
-      toast.error(`Lỗi: ${error.message}`);
-    } finally {
-      setIsSaving(false);
+      // Error handled by apiClient toast
     }
   };
+
+  const isPending = updateProperty.isPending || createProperty.isPending;
 
   if (isEdit && isLoading) {
     return (
@@ -107,15 +112,21 @@ export function PropertyForm({ id, onClose }: PropertyFormProps) {
             </h3>
             <div className="grid grid-cols-3 gap-3">
               <div className="bg-muted/30 p-3 rounded-xl border border-border/50 text-center">
-                <div className="text-[8px] font-black uppercase text-muted-foreground mb-1">Odoo ID</div>
+                <div className="text-[8px] font-black uppercase text-muted-foreground mb-1">
+                  Odoo ID
+                </div>
                 <div className="text-xs font-bold text-foreground">{property?.odooId || "-"}</div>
               </div>
               <div className="bg-muted/30 p-3 rounded-xl border border-border/50 text-center">
-                <div className="text-[8px] font-black uppercase text-muted-foreground mb-1">PMS ID</div>
+                <div className="text-[8px] font-black uppercase text-muted-foreground mb-1">
+                  PMS ID
+                </div>
                 <div className="text-xs font-bold text-foreground">{property?.pmsId || "-"}</div>
               </div>
               <div className="bg-muted/30 p-3 rounded-xl border border-border/50 text-center">
-                <div className="text-[8px] font-black uppercase text-muted-foreground mb-1">POS ID</div>
+                <div className="text-[8px] font-black uppercase text-muted-foreground mb-1">
+                  POS ID
+                </div>
                 <div className="text-xs font-bold text-foreground">{property?.posId || "-"}</div>
               </div>
             </div>
@@ -126,7 +137,8 @@ export function PropertyForm({ id, onClose }: PropertyFormProps) {
       <div className="p-4 rounded-xl bg-primary/5 border border-primary/10 flex gap-3">
         <Info className="h-5 w-5 text-primary shrink-0 mt-0.5" />
         <p className="text-xs text-muted-foreground leading-relaxed">
-          <strong>Lưu ý:</strong> Mã định danh (Code) sẽ được sử dụng để đồng bộ dữ liệu giữa các hệ thống Odoo, PMS và POS. Không nên thay đổi mã này sau khi đã tạo.
+          <strong>Lưu ý:</strong> Mã định danh (Code) sẽ được sử dụng để đồng bộ dữ liệu giữa các hệ
+          thống Odoo, PMS và POS. Không nên thay đổi mã này sau khi đã tạo.
         </p>
       </div>
 
@@ -139,10 +151,10 @@ export function PropertyForm({ id, onClose }: PropertyFormProps) {
         </button>
         <button
           onClick={handleSave}
-          disabled={isSaving}
+          disabled={isPending}
           className="flex-1 h-12 rounded-xl bg-primary text-primary-foreground font-bold hover:opacity-90 shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
         >
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           {isEdit ? "Cập nhật & Đồng bộ" : "Tạo Property"}
         </button>
       </div>

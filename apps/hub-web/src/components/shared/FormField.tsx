@@ -5,13 +5,15 @@ interface FormFieldProps {
   error?: string;
   children: React.ReactNode;
   className?: string;
+  required?: boolean;
 }
 
-export function FormField({ label, error, children, className }: FormFieldProps) {
+export function FormField({ label, error, children, className, required }: FormFieldProps) {
   return (
     <div className={cn("space-y-1.5 w-full", className)}>
       <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground ml-1">
         {label}
+        {required && <span className="text-destructive ml-1">*</span>}
       </label>
       <div className="relative group">{children}</div>
       {error && <p className="text-[11px] text-destructive font-bold ml-1">{error}</p>}

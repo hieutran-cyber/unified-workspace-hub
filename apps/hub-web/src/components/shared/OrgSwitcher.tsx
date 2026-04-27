@@ -1,14 +1,16 @@
 "use client";
 
 import { useOrganization } from "@/hooks/use-organization";
-import { Building2, ChevronsUpDown, Check, PlusCircle } from "lucide-react";
+import { Building2, ChevronsUpDown, Check, PlusCircle, Star } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 
 export function OrgSwitcher() {
-  const { currentOrg, allOrgs, selectOrg } = useOrganization();
+  const { currentOrg, allOrgs, selectOrg, defaultOrgId, setDefaultOrg } = useOrganization();
   const [isOpen, setIsOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   if (!currentOrg) return null;
 
@@ -41,23 +43,43 @@ export function OrgSwitcher() {
             </div>
             <div className="max-h-[300px] overflow-auto px-1">
               {allOrgs.map((org) => (
-                <button
+                <div
                   key={org.id}
-                  onClick={() => {
-                    selectOrg(org.id);
-                    setIsOpen(false);
-                  }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
+                    "group/item w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer",
                     currentOrg.id === org.id
                       ? "bg-primary/10 text-primary font-medium"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
+                  onClick={async () => {
+                    await selectOrg(org.id);
+                    queryClient.invalidateQueries();
+                    setIsOpen(false);
+                  }}
                 >
                   <Building2 className="h-4 w-4" />
                   <span className="flex-1 text-left">{org.name}</span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (defaultOrgId === org.id) {
+                        setDefaultOrg(null);
+                      } else {
+                        setDefaultOrg(org.id);
+                      }
+                    }}
+                    className={cn(
+                      "p-1.5 rounded-md hover:bg-background/50 transition-colors opacity-0 group-hover/item:opacity-100",
+                      defaultOrgId === org.id && "opacity-100 text-amber-500",
+                    )}
+                    title={defaultOrgId === org.id ? "Remove default" : "Set as default"}
+                  >
+                    <Star
+                      className={cn("h-3.5 w-3.5", defaultOrgId === org.id && "fill-current")}
+                    />
+                  </button>
                   {currentOrg.id === org.id && <Check className="h-3.5 w-3.5" />}
-                </button>
+                </div>
               ))}
             </div>
             <div className="mt-2 pt-2 border-t border-border px-1">

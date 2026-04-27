@@ -3,7 +3,7 @@
 import { Check, Minus, Save, Plus, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRoles } from "@/hooks/api/use-roles";
-import { useApplications } from "@/hooks/api/use-apps";
+import { useApps } from "@/hooks/api/use-apps";
 import { HasPermission } from "@/components/shared/HasPermission";
 
 interface App {
@@ -30,7 +30,7 @@ interface Role {
 export default function RolesPage() {
   // 1. Fetch Roles & Apps using custom hooks
   const { data: roles, isLoading: rolesLoading } = useRoles();
-  const { data: apps, isLoading: appsLoading } = useApplications();
+  const { data: apps, isLoading: appsLoading } = useApps();
 
   if (rolesLoading || appsLoading) {
     return (
@@ -60,9 +60,6 @@ export default function RolesPage() {
               <Plus className="h-4 w-4" /> Add Role
             </Link>
           </HasPermission>
-          <button className="h-9 px-4 rounded-lg bg-background border border-border text-foreground text-sm font-semibold flex items-center gap-2 hover:bg-muted transition-colors">
-            <Save className="h-4 w-4" /> Save Changes
-          </button>
         </div>
       </div>
 

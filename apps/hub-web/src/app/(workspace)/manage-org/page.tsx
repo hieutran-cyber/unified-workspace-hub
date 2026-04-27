@@ -1,6 +1,7 @@
 "use client";
 
-import { useOrganization, MOCK_ORGANIZATIONS } from "@/hooks/use-organization";
+import { useOrganization } from "@/hooks/use-organization";
+import { useOrganizations } from "@/hooks/api/use-organizations";
 import { 
   Building2, 
   Globe, 
@@ -8,13 +9,23 @@ import {
   Plus,
   ArrowRight,
   ExternalLink,
-  Users
+  Users,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 export default function ManageOrgPage() {
   const { currentOrg } = useOrganization();
+  const { data: organizations, isLoading } = useOrganizations();
+
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-700">
@@ -41,7 +52,7 @@ export default function ManageOrgPage() {
 
       {/* Grid view of organizations */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {MOCK_ORGANIZATIONS.map((org) => (
+        {(organizations || []).map((org) => (
           <div 
             key={org.id} 
             className={cn(
@@ -82,21 +93,21 @@ export default function ManageOrgPage() {
                 <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Properties</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <Building2 className="h-3.5 w-3.5 text-primary" />
-                  <span className="text-lg font-black">{org.id === "1" ? "12" : "3"}</span>
+                  <span className="text-lg font-black">{org._count?.properties ?? 0}</span>
                 </div>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Members</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <Users className="h-3.5 w-3.5 text-blue-500" />
-                  <span className="text-lg font-black">{org.id === "1" ? "1.2k" : "86"}</span>
+                  <span className="text-lg font-black">{org._count?.users ?? 0}</span>
                 </div>
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground">Roles</p>
                 <div className="flex items-center gap-1.5 mt-1">
                   <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
-                  <span className="text-lg font-black">24</span>
+                  <span className="text-lg font-black">{org._count?.roles ?? 0}</span>
                 </div>
               </div>
             </div>

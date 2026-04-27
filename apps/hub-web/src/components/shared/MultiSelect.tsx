@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import * as React from "react";
+import * as PopoverPrimitive from "@radix-ui/react-popover";
 import { ChevronDown, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -24,24 +25,13 @@ export function MultiSelect({
   placeholder = "Chọn nhiều...",
   className,
 }: MultiSelectProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const normalizedOptions = options.map((opt) =>
     typeof opt === "string" ? { value: opt, label: opt } : opt,
   );
 
   const selectedOptions = normalizedOptions.filter((opt) => value.includes(opt.value));
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   const toggleOption = (optionValue: string) => {
     const newValue = value.includes(optionValue)
@@ -56,44 +46,50 @@ export function MultiSelect({
   };
 
   return (
-    <div className={cn("relative", className)} ref={containerRef}>
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        className={cn(
-          "w-full min-h-[44px] p-2 rounded-xl border border-border/60 bg-background/30 text-sm flex flex-wrap items-center gap-1.5 hover:bg-background/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 outline-none drop-shadow-sm cursor-pointer",
-          isOpen && "ring-1 ring-primary/30 border-primary/40 bg-background/50",
-        )}
-      >
-        {selectedOptions.length > 0 ? (
-          <div className="flex flex-wrap gap-1.5 flex-1">
-            {selectedOptions.map((option) => (
-              <span
-                key={option.value}
-                className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 group transition-all hover:bg-primary/20"
-              >
-                {option.label}
-                <X
-                  className="h-2.5 w-2.5 cursor-pointer hover:text-red-500"
-                  onClick={(e) => removeOption(e, option.value)}
-                />
-              </span>
-            ))}
-          </div>
-        ) : (
-          <span className="text-muted-foreground/50 font-medium px-2 flex-1">
-            {placeholder}
-          </span>
-        )}
-        <ChevronDown
+    <PopoverPrimitive.Root open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverPrimitive.Trigger asChild>
+        <div
           className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform duration-200 mr-2 shrink-0",
-            isOpen && "rotate-180",
+            "w-full min-h-[44px] p-2 rounded-xl border border-border/60 bg-background/30 text-sm flex flex-wrap items-center gap-1.5 hover:bg-background/50 transition-all focus-within:ring-1 focus-within:ring-primary/30 outline-none drop-shadow-sm cursor-pointer",
+            isOpen && "ring-1 ring-primary/30 border-primary/40 bg-background/50",
+            className
           )}
-        />
-      </div>
+        >
+          {selectedOptions.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 flex-1">
+              {selectedOptions.map((option) => (
+                <span
+                  key={option.value}
+                  className="bg-primary/10 text-primary border border-primary/20 px-2 py-0.5 rounded-lg text-[10px] font-bold flex items-center gap-1 group transition-all hover:bg-primary/20"
+                >
+                  {option.label}
+                  <X
+                    className="h-2.5 w-2.5 cursor-pointer hover:text-red-500"
+                    onClick={(e) => removeOption(e, option.value)}
+                  />
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-muted-foreground/50 font-medium px-2 flex-1">
+              {placeholder}
+            </span>
+          )}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200 mr-2 shrink-0",
+              isOpen && "rotate-180",
+            )}
+          />
+        </div>
+      </PopoverPrimitive.Trigger>
 
-      {isOpen && (
-        <div className="absolute top-[calc(100%+8px)] left-0 right-0 z-50 p-1.5 rounded-2xl border border-border/50 bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200 origin-top">
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content
+          align="start"
+          sideOffset={8}
+          className="z-[999] w-[var(--radix-popover-trigger-width)] p-1.5 rounded-2xl border border-border/50 bg-card shadow-2xl animate-in fade-in zoom-in-95 duration-200 origin-top overflow-hidden"
+        >
           <div className="max-h-60 overflow-y-auto custom-scrollbar">
             {normalizedOptions.map((option) => {
               const isSelected = value.includes(option.value);
@@ -130,8 +126,8 @@ export function MultiSelect({
               </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
   );
 }

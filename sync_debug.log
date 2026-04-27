@@ -1,0 +1,84 @@
+Starting synchronization to Clerk...
+Found 2 organizations to sync.
+Creating creator user admin@kinex.com in Clerk...
+Failed to sync organization KiNEX: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating creator user admin@kinex.com in Clerk...
+Failed to sync organization Malaysia KiNEX: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user admin@kinex.com in Clerk...
+Failed to sync user admin@kinex.com: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user cuong.lv@kinex.vn in Clerk...
+Failed to sync user cuong.lv@kinex.vn: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user binh.tt@kinex.vn in Clerk...
+Failed to sync user binh.tt@kinex.vn: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user danh.pn@kinex.vn in Clerk...
+Failed to sync user danh.pn@kinex.vn: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user dung.ha@kinex.vn in Clerk...
+Failed to sync user dung.ha@kinex.vn: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user accountant@kinex.com in Clerk...
+Failed to sync user accountant@kinex.com: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Creating user an.nv@kinex.vn in Clerk...
+Failed to sync user an.nv@kinex.vn: [
+  {
+    "code": "form_data_missing",
+    "message": "missing data",
+    "longMessage": "[\"username\"] data doesn't match user requirements set for this instance",
+    "meta": {}
+  }
+]
+Synchronization to Clerk completed!

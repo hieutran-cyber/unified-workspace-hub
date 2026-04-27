@@ -6,7 +6,6 @@ export default function Page() {
       <SignIn
         path="/sign-in"
         routing="path"
-        signUpUrl="/sign-up"
         afterSignInUrl="/select-org"
       />
     </div>

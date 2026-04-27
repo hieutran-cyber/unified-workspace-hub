@@ -1,13 +1,16 @@
 import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards } from "@nestjs/common";
 import { PrismaService } from "../database/database.module";
-import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { MultiAuthGuard } from "../auth/multi-auth.guard";
+import { PermissionsGuard } from "../auth/permissions.guard";
+import { RequiredPermissions } from "../auth/permissions.decorator";
 
 @Controller("roles")
-@UseGuards(JwtAuthGuard)
+@UseGuards(MultiAuthGuard, PermissionsGuard)
 export class RolesController {
   constructor(private prisma: PrismaService) {}
 
   @Get()
+  @RequiredPermissions("hub:roles:view")
   async getRoles() {
     return this.prisma.centralRole.findMany({
       include: {
@@ -23,7 +26,16 @@ export class RolesController {
     });
   }
 
+  @Get("available-permissions")
+  @RequiredPermissions("hub:roles:view")
+  async getPermissions() {
+    return this.prisma.permission.findMany({
+      orderBy: { name: "asc" },
+    });
+  }
+
   @Get(":id")
+  @RequiredPermissions("hub:roles:view")
   async getRole(@Param("id") id: string) {
     return this.prisma.centralRole.findUnique({
       where: { id },
@@ -35,6 +47,7 @@ export class RolesController {
   }
 
   @Put(":id")
+  @RequiredPermissions("hub:roles:manage")
   async updateRole(
     @Param("id") id: string,
     @Body()
@@ -107,6 +120,7 @@ export class RolesController {
   }
 
   @Post()
+  @RequiredPermissions("hub:roles:manage")
   async createRole(
     @Body()
     data: {
